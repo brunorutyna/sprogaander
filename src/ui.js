@@ -190,11 +190,16 @@ function fullSentence(it){
 }
 
 /* panel wrapper: returns a promise resolved when closed */
-function panel(title,build,cls){return new Promise(res=>{
-  const p=openSheet('panel '+(cls||''));
-  const close=()=>{closeSheet();res()};
-  p.append(h('div',{class:'phead'},h('h2',null,title),h('button',{class:'xbtn',type:'button','aria-label':'Luk',on:{click:close}},'✕')));
-  const body=h('div',{class:'pbody'});p.append(body);
-  build(body,close);
-  sheetKeyFn=k=>{if(k==='b')close()};
-})}
+// Panels stack: opening one from another (e.g. Åndebog → a spirit) and closing it returns to the one below.
+// Every panel's promise resolves when it closes, so whoever awaited the menu gets control back.
+const PANELS=[];let afterPanels=null;
+function renderPanel(e){const p=openSheet('panel '+(e.cls||''));
+  p.append(h('div',{class:'phead'},h('h2',null,e.title),h('button',{class:'xbtn',type:'button','aria-label':'Luk',on:{click:e.close}},'✕')));
+  const body=h('div',{class:'pbody'});p.append(body);e.build(body,e.close);sheetKeyFn=k=>{if(k==='b')e.close()}}
+function panel(title,build,cls){return new Promise(res=>{const e={title,build,cls,res};
+  e.close=()=>{const i=PANELS.indexOf(e);if(i<0)return;const gone=PANELS.splice(i);closeSheet();
+    for(const g of gone)g.res();if(PANELS.length&&!afterPanels)renderPanel(PANELS[PANELS.length-1])};
+  PANELS.push(e);renderPanel(e)})}
+// Close every open panel, then run fn once the menu has unwound (keeps the world locked meanwhile).
+function thenAfterPanels(fn){afterPanels=fn;const all=PANELS.splice(0);closeSheet();for(const g of all)g.res()}
+async function runAfterPanels(){while(afterPanels){const f=afterPanels;afterPanels=null;await f()}}

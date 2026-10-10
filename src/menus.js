@@ -11,9 +11,10 @@ const ITEMS={
 async function startMenu(){
   const v=await menu([
     {label:'ÅNDEBOG',value:'dex',disabled:!S.flags.fox},{label:'ÅNDER',value:'party',disabled:!S.party.length},{label:'TASKE',value:'bag'},
-    {label:'BRUNO',value:'card'},{label:'TAVLER',value:'boards'},{label:'INDSTIL.',value:'set'},{label:'GEM',value:'save'},{label:'LUK',value:null}],{cls:'start',startCloses:true});
-  if(v==='dex')return dexPanel();if(v==='party')return partyPanel();if(v==='bag')return bagPanel();if(v==='card')return cardPanel();
-  if(v==='boards')return boardsPanel();if(v==='set')return settingsPanel();if(v==='save'){save();toast('Spillet er gemt.')}
+    {label:(S.name||'Spiller').toUpperCase().slice(0,9),value:'card'},{label:'TAVLER',value:'boards'},{label:'INDSTIL.',value:'set'},{label:'GEM',value:'save'},{label:'LUK',value:null}],{cls:'start',startCloses:true});
+  if(v==='dex')await dexPanel();else if(v==='party')await partyPanel();else if(v==='bag')await bagPanel();else if(v==='card')await cardPanel();
+  else if(v==='boards')await boardsPanel();else if(v==='set')await settingsPanel();else if(v==='save'){save();toast('Spillet er gemt.')}
+  await runAfterPanels()
 }
 function typeChip(t){const T=TYPES[t];return h('span',{class:'type',style:`--tc:${T.c}`},T.n)}
 function bar(f,cls){return h('i',{class:'bar '+(cls||'')},h('s',{style:`width:${Math.round(Math.max(0,Math.min(1,f))*100)}%`}))}
@@ -41,7 +42,7 @@ function dexEntry(d){return panel(S.seen[d.id]?d.name:'???',(b,close)=>{
     if(d.evo)info.append(h('p',{class:'mini'},`Udvikler sig til ${S.seen[d.evo]?SP[d.evo].name:'???'} ved niveau ${d.evoLv}, når du kan emnet (60 %).`));
     if(d.stage)info.append(h('p',{class:'mini'},'Den udviklede form. Den vokser, når man kan emnet godt.'));
     const n=BANK.filter(i=>i.topic===topic).length;
-    b.append(h('div',{class:'row'},h('button',{class:'btn pri',type:'button',on:{click:()=>{close();practice(pickN([topic],5),T[2])}}},`Øv emnet · 5 spørgsmål`),h('span',{class:'mini'},`${n} spørgsmål i alt. Rigtige svar giver også din første ånd erfaring.`)));}
+    b.append(h('div',{class:'row'},h('button',{class:'btn pri',type:'button',on:{click:()=>thenAfterPanels(()=>practice(pickN([topic],5),T[2]))}},`Øv emnet · 5 spørgsmål`),h('span',{class:'mini'},`${n} spørgsmål i alt. Rigtige svar giver også din første ånd erfaring.`)));}
 })}
 function pickN(topics,n){const out=[];for(let k=0;k<n;k++){const it=pickItem(topics);if(it&&!out.includes(it))out.push(it)}return out}
 async function practice(items,label){
@@ -84,7 +85,7 @@ function cardPanel(){return panel(S.name||'Spiller',(b,close)=>{
   b.append(badges);
   b.append(h('h4',null,'Dagens mål'),h('div',{class:'mast'},h('span',{class:'num'},`${Math.min(n,GOAL)} / ${GOAL} rigtige svar i dag · ${S.streak} ${S.streak===1?'dag':'dage'} i træk`),bar(n/GOAL,n>=GOAL?'ok':'')));
   const wk=weakItems();
-  b.append(h('div',{class:'row'},h('button',{class:'btn pri',type:'button',disabled:wk.length?false:'',on:{click:()=>{close();practice(wk.slice(0,8),'Svære spørgsmål')}}},`Øv svære spørgsmål (${wk.length})`)));
+  b.append(h('div',{class:'row'},h('button',{class:'btn pri',type:'button',disabled:wk.length?false:'',on:{click:()=>thenAfterPanels(()=>practice(wk.slice(0,8),'Svære spørgsmål'))}},`Øv svære spørgsmål (${wk.length})`)));
   b.append(h('h4',null,'Emner'));
   const tl2=h('div',{class:'topics'});for(const t in TOPICS){const m=mastery(t);tl2.append(h('div',{class:'trow'},h('span',null,TOPICS[t][2]),bar(m,m>=EVO_NEED?'ok':'')))}
   b.append(tl2);

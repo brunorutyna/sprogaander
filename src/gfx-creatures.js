@@ -82,7 +82,6 @@ function drawBase(x,sp,T,t,hueT){const b=T.base,P=T.plan,bob=Math.sin(t/500)*1.2
   else{for(const s of[-1,1])blob(x,50+s*12,92,8,4.5,hueShift(b,-10,1,.85));
     if(T.drips){for(let k=0;k<4;k++){const dx=32+k*12,dl=6+((k*5)%4)*3;x.fillStyle=bodyGrad(x,dx,86,4,dl,b);x.beginPath();x.ellipse(dx,84+dl/2,3.4,dl/2+2,0,0,Math.PI*2);x.fill()}}
     blob(x,50,64+bob*.5,30,28,b);pattern(x,T,50,74,14,11,hueT);topper(x,T,50,48,24,hueT);face(x,T,50,54+bob*.5,26,hueT,1)}
-  if(T.glyph&&P!=='serpent'){glyphText(x,T.glyph,50,P==='floaty'?60:P==='bird'?72:P==='quad'?76:78,T.glyph.length>3?7:9,'rgba(255,255,255,.92)')}
 }
 function drawSwole(x,sp,T,t,hueT){const b=mix(T.base,'#c9773a',.12),P=T.plan;const flex=Math.sin(t/650)*.06;const bob=Math.sin(t/700)*1;
   const dk=hueShift(b,-22,1.1,.55),vein=hueShift(b,-30,1.2,.45);
@@ -106,7 +105,9 @@ function drawSwole(x,sp,T,t,hueT){const b=mix(T.base,'#c9773a',.12),P=T.plan;con
   // gold chain + medallion
   x.strokeStyle='#e8bc4a';x.lineWidth=1.6;x.setLineDash([2.2,1.1]);x.beginPath();x.moveTo(37,47);x.quadraticCurveTo(50,66,63,47);x.stroke();x.setLineDash([]);
   const mg=rg(x,50,62,0,8,[[0,'#fff3b8'],[.5,'#e8bc4a'],[1,'#9a6e18']],47,59);x.fillStyle=mg;x.beginPath();x.arc(50,62,7.5,0,Math.PI*2);x.fill();x.strokeStyle='#7a5410';x.lineWidth=.8;x.stroke();
-  glyphText(x,T.glyph||'Ø',50,62.4,T.glyph.length>3?3.6:T.glyph.length>2?4.4:5.6,'#5a3c08');
+  // embossed star on the medallion (no text on bodies; it read as an art glitch)
+  x.fillStyle='#8a6214';x.beginPath();for(let k=0;k<10;k++){const an=-Math.PI/2+k*Math.PI/5,r=k%2?2:4.6;x.lineTo(50+Math.cos(an)*r,62.4+Math.sin(an)*r)}x.closePath();x.fill();
+  x.fillStyle='rgba(255,243,184,.55)';x.beginPath();for(let k=0;k<10;k++){const an=-Math.PI/2+k*Math.PI/5,r=k%2?1.3:3.2;x.lineTo(49.6+Math.cos(an)*r,61.9+Math.sin(an)*r)}x.closePath();x.fill();
   // head (small, determined)
   const hx=50,hy=30+bob,hr=12;
   if(P==='quad'||sp.fox)ears(x,T,hx,hy,hr,b);

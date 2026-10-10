@@ -57,7 +57,15 @@ function drawGround(x,m,x0,y0,x1,y1){
 }
 
 /* ---------- props ---------- */
-function pTree(x,X,Y,tx,ty){const au=hsh(tx,ty,5)<.28;const base=au?AUTUMN[Math.floor(hsh(tx,ty,6)*4)]:mix(PAL.tree,PAL.treeLt,hsh(tx,ty,7)*.4);
+// Trees are cached as sprites per (colour, sparkle) variant at the current scale: big speed-up for chunk builds.
+const TREE_SPR=new Map();let TREE_SC=0;
+function pTree(x,X,Y,tx,ty){const sc=x.getTransform().a;if(sc!==TREE_SC){TREE_SPR.clear();TREE_SC=sc}
+  const au=hsh(tx,ty,5)<.28;const ci=au?Math.floor(hsh(tx,ty,6)*4):Math.floor(hsh(tx,ty,7)*6),vi=Math.floor(hsh(tx,ty,9)*3);const key=(au?'a':'g')+ci+':'+vi;
+  let c=TREE_SPR.get(key);
+  if(!c){const W=24,H=28;c=mkc(Math.ceil(W*sc),Math.ceil(H*sc));const y=c.getContext('2d');y.setTransform(sc,0,0,sc,3*sc,9*sc);
+    const base=au?AUTUMN[ci]:mix(PAL.tree,PAL.treeLt,ci/6*.4);pTreeRaw(y,0,0,vi*7+1,vi*3+2,base);TREE_SPR.set(key,c)}
+  const T=x.getTransform();x.setTransform(1,0,0,1,0,0);x.drawImage(c,Math.round(T.a*(X-3)+T.e),Math.round(T.d*(Y-9)+T.f));x.setTransform(T)}
+function pTreeRaw(x,X,Y,tx,ty,base){
   softShadow(x,X+9,Y+14.5,8,3);x.fillStyle=PAL.woodDk;rr(x,X+6.5,Y+8,3,7.5,1);x.fill();
   const blobs=[[8,1,7.2],[3.5,5,5],[12.5,5,5],[8,7,5.8],[5.5,-2,4.2],[11,-1.5,4]];
   for(const[a,b,r]of blobs){ell(x,X+a+.6,Y+b+.8,r,r*.95,shade(base,.62))}
@@ -183,16 +191,20 @@ function drawRegion(x,m,x0,y0,x1,y1){
 }
 
 /* ---------- chunk cache ---------- */
-const CHK=8;let CHUNKS=new Map(),CH_SCALE=0;
+// Chunks are rendered at exactly the screen scale and snapped to whole device pixels:
+// chunk (cx,cy) covers device columns [floor(cx*128*s), floor((cx+1)*128*s)), so neighbouring
+// chunks tile with no overlap, no gaps and no resampling when blitted (no seams, no shimmer).
+const CHK=8;let CHUNKS=new Map(),CH_SCALE=0,CH_MAX=40;
+const chEdge=(c,s)=>Math.floor(c*CHK*16*s);
 function chunkKey(m,cx,cy){return m.id+':'+cx+':'+cy}
 function getChunk(m,cx,cy,scale,make){
-  if(scale!==CH_SCALE){CHUNKS.clear();CH_SCALE=scale}
+  if(scale!==CH_SCALE){CHUNKS.clear();CH_SCALE=scale;const px=CHK*16*scale;CH_MAX=Math.max(24,Math.min(60,Math.floor(140e6/(px*px*4))))}
   const k=chunkKey(m,cx,cy);let c=CHUNKS.get(k);if(c){CHUNKS.delete(k);CHUNKS.set(k,c);return c}
   if(!make)return null;
-  const px=Math.ceil(CHK*16*scale);c=mkc(px,px);const x=c.getContext('2d');
-  x.setTransform(scale,0,0,scale,-cx*CHK*16*scale,-cy*CHK*16*scale);x.beginPath();x.rect(cx*CHK*16,cy*CHK*16,CHK*16,CHK*16);x.clip();
+  const X0=chEdge(cx,scale),Y0=chEdge(cy,scale);c=mkc(chEdge(cx+1,scale)-X0,chEdge(cy+1,scale)-Y0);c.X0=X0;c.Y0=Y0;const x=c.getContext('2d');
+  x.setTransform(scale,0,0,scale,-X0,-Y0);
   drawRegion(x,m,cx*CHK,cy*CHK,cx*CHK+CHK-1,cy*CHK+CHK-1);
-  CHUNKS.set(k,c);while(CHUNKS.size>26){CHUNKS.delete(CHUNKS.keys().next().value)}
+  CHUNKS.set(k,c);while(CHUNKS.size>CH_MAX){CHUNKS.delete(CHUNKS.keys().next().value)}
   return c}
 function chunkRange(m){const top=m.outdoor?(m.prev?0:-MY):0,bot=m.outdoor?(m.next?m.h:m.h+MY):m.h,left=m.outdoor?-MX:0,right=m.outdoor?m.w+MX:m.w;
   return{cy0:Math.floor(top/CHK),cy1:Math.floor((bot-1)/CHK),cx0:Math.floor(left/CHK),cx1:Math.floor((right-1)/CHK),top,bot}}

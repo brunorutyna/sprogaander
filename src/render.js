@@ -2,16 +2,25 @@
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 const lc=mkc(4,4),lx=lc.getContext('2d');
 let DPR=1,CW=360,CH=480,TILE=44,K=1; // CW/CH css px; TILE css px per tile; K device px per world unit
+let lastFs='';
 function fitScreen(){
   const scr=document.getElementById('screen');const r=scr.getBoundingClientRect();
-  DPR=Math.min(3,window.devicePixelRatio||1);CW=Math.max(200,r.width);CH=Math.max(200,r.height);
-  const w=Math.round(CW*DPR),h=Math.round(CH*DPR);if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}
+  // 2x is visually indistinguishable on phones and draws 2.25x fewer pixels than 3x
+  DPR=Math.min(2,window.devicePixelRatio||1);CW=Math.max(200,r.width);CH=Math.max(200,r.height);
+  const w=Math.round(CW*DPR),h=Math.round(CH*DPR);
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;lc.width=Math.ceil(w/2);lc.height=Math.ceil(h/2)}
   TILE=Math.max(38,Math.min(76,Math.min(CW/8.2,CH/10)));K=TILE*DPR/16;
-  lc.width=Math.ceil(w/2);lc.height=Math.ceil(h/2);
-  document.documentElement.style.setProperty('--fs',Math.max(14,Math.min(19,CW/24))+'px');
+  const fs=Math.max(14,Math.min(19,CW/24))+'px';if(fs!==lastFs){lastFs=fs;document.documentElement.style.setProperty('--fs',fs)}
 }
-try{new ResizeObserver(()=>fitScreen()).observe(document.getElementById('screen'))}catch(e){addEventListener('resize',fitScreen)}
-const chunkScale=()=>Math.min(K,TILE*Math.min(DPR,2)/16);
+// Resizing a canvas wipes it; doing that inside the observer callback shows a blank frame
+// (e.g. whenever the phone's address bar slides). Defer to the next animation frame, which redraws immediately.
+let needFit=false;
+try{new ResizeObserver(()=>{needFit=true}).observe(document.getElementById('screen'))}catch(e){addEventListener('resize',()=>{needFit=true})}
+const chunkScale=()=>K;
+/* soft light sprites (cheap to stamp vs. building gradients every frame) */
+const LIGHT_SPR=(()=>{const c=mkc(128,128),x=c.getContext('2d');const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(.5,'rgba(0,0,0,.5)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return c})();
+const GLOW_SPR={};function glowSpr(col){let c=GLOW_SPR[col];if(c)return c;c=mkc(128,128);const x=c.getContext('2d');const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,rgba(col,1));g.addColorStop(1,rgba(col,0));x.fillStyle=g;x.fillRect(0,0,128,128);return GLOW_SPR[col]=c}
+const CLOUD_SPR=(()=>{const c=mkc(128,128),x=c.getContext('2d');const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(20,24,40,.15)');g.addColorStop(1,'rgba(20,24,40,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return c})();
 
 /* ---- time of day + weather ---- */
 function timeOfDay(){const d=new Date();const hr=d.getHours()+d.getMinutes()/60;
@@ -62,7 +71,7 @@ function ambientParticles(m,cx,cy,vw,vh,dt,tod,wx){if(!m.outdoor)return;ambT+=dt
 }
 const RAIN=[];for(let i=0;i<140;i++)RAIN.push({x:Math.random(),y:Math.random(),s:.6+Math.random()*.6});
 function drawWeather(wx,t,dt){
-  if(wx==='cloudy'||wx==='rain'){for(let k=0;k<3;k++){const cx=((t/70000*(.6+k*.2)+k*.37)%1.4-.2)*cv.width,cy=(.2+k*.3)*cv.height;ctx.fillStyle=rg(ctx,cx,cy,0,cv.width*.4,[[0,'rgba(20,24,40,.15)'],[1,'rgba(20,24,40,0)']]);ctx.fillRect(0,0,cv.width,cv.height)}}
+  if(wx==='cloudy'||wx==='rain'){for(let k=0;k<3;k++){const cx=((t/70000*(.6+k*.2)+k*.37)%1.4-.2)*cv.width,cy=(.2+k*.3)*cv.height;const r=cv.width*.4;ctx.drawImage(CLOUD_SPR,cx-r,cy-r,r*2,r*2)}}
   if(wx==='rain'){ctx.fillStyle='rgba(40,55,80,.14)';ctx.fillRect(0,0,cv.width,cv.height);ctx.strokeStyle='rgba(200,222,255,.45)';ctx.lineWidth=Math.max(1,DPR*.9);ctx.beginPath();
     for(const d of RAIN){d.y+=dt*1.5*d.s;d.x+=dt*.22*d.s;if(d.y>1){d.y-=1;d.x=Math.random()}if(d.x>1)d.x-=1;const X=d.x*cv.width,Y=d.y*cv.height;ctx.moveTo(X,Y);ctx.lineTo(X-4*DPR,Y-13*DPR)}ctx.stroke()}
 }
@@ -77,37 +86,47 @@ function drawLights(m,toScr,tod,camL){
   L.push([(P.x+P.fx)*16+8,(P.y+P.fy)*16+4,34,.5]);
   for(const p of PARTS)if(p.t==='firefly')L.push([p.x,p.y,7,.7]);
   const vis=[];for(const l of L){const[sx,sy]=toScr(l[0],l[1]);const r=l[2]*K;if(sx<-r||sy<-r||sx>cv.width+r||sy>cv.height+r)continue;vis.push([sx,sy,r,l[3],l[4]])}
-  for(const[sx,sy,r,s]of vis){const g=lx.createRadialGradient(sx*sc,sy*sc,0,sx*sc,sy*sc,r*sc);g.addColorStop(0,`rgba(0,0,0,${s})`);g.addColorStop(1,'rgba(0,0,0,0)');lx.fillStyle=g;lx.fillRect(sx*sc-r*sc,sy*sc-r*sc,r*2*sc,r*2*sc)}
+  for(const[sx,sy,r,s]of vis){lx.globalAlpha=s;lx.drawImage(LIGHT_SPR,(sx-r)*sc,(sy-r)*sc,r*2*sc,r*2*sc)}
+  lx.globalAlpha=1;lx.globalCompositeOperation='source-over';
   ctx.setTransform(1,0,0,1,0,0);ctx.imageSmoothingEnabled=true;ctx.drawImage(lc,0,0,cv.width,cv.height);
   ctx.globalCompositeOperation='lighter';
-  for(const[sx,sy,r,s,c]of vis){if(r<16*K)continue;const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r*.85);g.addColorStop(0,rgba(c||'#ffaa50',.24*tod.dark*s));g.addColorStop(1,rgba(c||'#ffaa50',0));ctx.fillStyle=g;ctx.fillRect(sx-r,sy-r,r*2,r*2)}
-  ctx.globalCompositeOperation='source-over';
+  for(const[sx,sy,r,s,c]of vis){if(r<16*K)continue;const rr2=r*.85;ctx.globalAlpha=Math.min(1,.24*tod.dark*s);ctx.drawImage(glowSpr(c||'#ffaa50'),sx-rr2,sy-rr2,rr2*2,rr2*2)}
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   if(tod.tint){ctx.fillStyle=tod.tint;ctx.fillRect(0,0,cv.width,cv.height)}
 }
 
 /* ---- world ---- */
-let newChunksThisFrame=0;
-function drawMapChunks(M,oy,camL,camT,vw,vh){const R=chunkRange(M);const cs=chunkScale();
-  const tx0=Math.floor(camL/(CHK*16)),tx1=Math.floor((camL+vw)/(CHK*16)),ty0=Math.floor((camT-oy)/(CHK*16)),ty1=Math.floor((camT-oy+vh)/(CHK*16));
-  for(let cy=Math.max(R.cy0,ty0);cy<=Math.min(R.cy1,ty1);cy++)for(let cx=Math.max(R.cx0,tx0);cx<=Math.min(R.cx1,tx1);cx++){
-    let c=getChunk(M,cx,cy,cs,false);if(!c&&newChunksThisFrame<3){c=getChunk(M,cx,cy,cs,true);newChunksThisFrame++}
-    // clip to the map's own vertical span so margins don't overlap neighbours
-    const y0=Math.max(cy*CHK*16,R.top*16),y1=Math.min((cy+1)*CHK*16,R.bot*16);if(y1<=y0)continue;
-    if(c){const sy=(y0-cy*CHK*16)*cs,sh=(y1-y0)*cs;ctx.drawImage(c,0,sy,c.width,sh,cx*CHK*16,y0+oy,CHK*16,y1-y0)}
-    else{ctx.fillStyle=M.outdoor?PAL.grass:'#14111a';ctx.fillRect(cx*CHK*16,y0+oy,CHK*16,y1-y0)}}}
-function prewarm(M){const R=chunkRange(M);const cs=chunkScale();const pcx=Math.floor((P.x*16)/(CHK*16)),pcy=Math.floor((P.y*16)/(CHK*16));
-  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const cx=pcx+dx,cy=pcy+dy;if(cx<R.cx0||cx>R.cx1||cy<R.cy0||cy>R.cy1)continue;if(!getChunk(M,cx,cy,cs,false)){getChunk(M,cx,cy,cs,true);return}}}
+// Blit pre-rendered chunks 1:1 in device pixels. oyD = device-pixel vertical offset of map M; (ox,oy) camera.
+function drawMapChunks(M,oyD,ox,oy){const R=chunkRange(M);const s=K;
+  const spanT=Math.floor(R.top*16*s),spanB=Math.floor(R.bot*16*s);
+  const L=-ox,T=-oy-oyD,Rr=L+cv.width,B=T+cv.height; // visible device rect in M's own pixel space
+  for(let cy=R.cy0;cy<=R.cy1;cy++){const y0=chEdge(cy,s),y1=chEdge(cy+1,s);if(y1<=T||y0>=B)continue;
+    const a=Math.max(y0,spanT),b=Math.min(y1,spanB);if(b<=a)continue;
+    for(let cx=R.cx0;cx<=R.cx1;cx++){const x0=chEdge(cx,s),x1=chEdge(cx+1,s);if(x1<=L||x0>=Rr)continue;
+      const c=getChunk(M,cx,cy,s,true);
+      ctx.drawImage(c,0,a-y0,c.width,b-a,x0+ox,a+oyD+oy,c.width,b-a)}}}
+// When idle, render one missing chunk around the view (one chunk ring of margin) so walking never waits.
+function prewarm(M){const R=chunkRange(M);const s=K,sz=CHK*16*s;const pcx=Math.floor((P.x*16+8)*s/sz),pcy=Math.floor((P.y*16+8)*s/sz);
+  const rx=Math.ceil(cv.width/sz/2)+1,ry=Math.ceil(cv.height/sz/2)+1;
+  if((2*rx+1)*(2*ry+1)>CH_MAX-4)return;
+  for(let d=0;d<=Math.max(rx,ry);d++)for(let dy=-Math.min(d,ry);dy<=Math.min(d,ry);dy++)for(let dx=-Math.min(d,rx);dx<=Math.min(d,rx);dx++){
+    if(Math.max(Math.abs(dx),Math.abs(dy))!==d)continue;const cx=pcx+dx,cy=pcy+dy;if(cx<R.cx0||cx>R.cx1||cy<R.cy0||cy>R.cy1)continue;
+    if(!getChunk(M,cx,cy,s,false)){getChunk(M,cx,cy,s,true);return true}}
+  return false}
+let lastWarm=0;
 function drawWorld(now,dt){
-  const m=GAME.map;prepMap(m);newChunksThisFrame=0;
+  const m=GAME.map;prepMap(m);
   const tod=timeOfDay();const wx=weatherFor(m);const wind=wx==='wind'?1:wx==='rain'?.5:0;
   const vw=cv.width/K,vh=cv.height/K;
   const camX=(P.x+P.fx)*16+8,camY=(P.y+P.fy)*16+4;
   const ox=Math.round(cv.width/2-camX*K),oyy=Math.round(cv.height/2-camY*K);const camL=-ox/K,camT=-oyy/K;
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=m.outdoor?PAL.treeDk:'#0e0c14';ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.setTransform(K,0,0,K,ox,oyy);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  drawMapChunks(m,0,camL,camT,vw,vh);
-  if(m.outdoor&&m.prev&&camT<0){const pm=mapById(m.prev);prepMap(pm);drawMapChunks(pm,-pm.h*16,camL,camT+pm.h*16,vw,vh)}
-  if(m.outdoor&&m.next&&camT+vh>m.h*16){const nm=mapById(m.next);prepMap(nm);drawMapChunks(nm,m.h*16,camL,camT-m.h*16,vw,vh)}
+  ctx.imageSmoothingEnabled=false;let warm=performance.now();
+  drawMapChunks(m,0,ox,oyy);
+  if(m.outdoor&&m.prev&&camT<0){const pm=mapById(m.prev);prepMap(pm);drawMapChunks(pm,-Math.floor(pm.h*16*K),ox,oyy)}
+  if(m.outdoor&&m.next&&camT+vh>m.h*16){const nm=mapById(m.next);prepMap(nm);drawMapChunks(nm,Math.floor(m.h*16*K),ox,oyy)}
+  warm=performance.now()-warm;
+  ctx.setTransform(K,0,0,K,ox,oyy);ctx.imageSmoothingEnabled=true;
   const inView=(a,b)=>a*16>camL-24&&a*16<camL+vw+8&&b*16>camT-24&&b*16<camT+vh+24;
   for(const[a,b]of m.waterTiles)if(inView(a,b))drawWaterFx(ctx,a*16,b*16,a,b,now);
   for(const[a,b]of m.grassTiles)if(inView(a,b))drawTallGrass(ctx,a*16,b*16,a,b,now,wind,false);
@@ -130,7 +149,8 @@ function drawWorld(now,dt){
   if(m.outdoor)drawWeather(wx,now,dt);
   if(GAME.trip&&now-GAME.trip<7000)drawTrip(now-GAME.trip);
   if(now-GAME.fade<260){ctx.fillStyle=`rgba(10,8,16,${1-(now-GAME.fade)/260})`;ctx.fillRect(0,0,cv.width,cv.height)}
-  if(newChunksThisFrame===0)prewarm(m);
+  // one chunk per idle frame; while walking at most one every 300ms so steps stay smooth
+  if(warm<3&&(!P.moving||now-lastWarm>300)&&prewarm(m))lastWarm=now;
 }
 function x_glow(w,a){ctx.fillStyle=`rgba(255,196,110,${.85*a})`;ctx.fillRect(w.x,w.y,w.w,w.h);ctx.fillStyle=`rgba(255,235,190,${.6*a})`;ctx.fillRect(w.x,w.y,w.w,w.h*.25)}
 function bubble(X,Y,ch,col){fillRR(ctx,X-4.5,Y-5,9,8.5,2.5,'#fbf7ee');ctx.fillStyle='#fbf7ee';ctx.beginPath();ctx.moveTo(X-1.5,Y+3.4);ctx.lineTo(X,Y+5.4);ctx.lineTo(X+1.5,Y+3.4);ctx.fill();
@@ -247,7 +267,7 @@ function drawIntro(now,dt){ctx.setTransform(DPR,0,0,DPR,0,0);const W=CW,H=CH;ctx
   if(GAME.introLook){const sc=Math.min(W,H)/34;ctx.save();ctx.translate(W/2-8*sc,H*.66-15*sc);ctx.scale(sc,sc);drawPerson(ctx,GAME.introLook,'d',0,0,0,false);ctx.restore()}}
 
 let lastT=0;
-function loop(now){const dt=Math.min(.1,(now-(lastT||now))/1000);lastT=now;
+function loop(now){if(needFit){needFit=false;fitScreen()}const dt=Math.min(.1,(now-(lastT||now))/1000);lastT=now;
   if(GAME.mode==='world')S.time+=dt;
   updateWorld(now);
   if(GAME.mode==='title')drawTitle(now,dt);else if(GAME.mode==='intro')drawIntro(now,dt);else if(GAME.mode==='evo')drawEvo(now,dt);
