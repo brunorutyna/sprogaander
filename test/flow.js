@@ -25,7 +25,7 @@ const {chromium}=require('playwright');
    for(const i of BANK)if(i.topic==='hej')S.stats[i.id]={box:4,seen:4,right:4,wrong:0}});
  await key('z');let s=await drive();console.log('gym done',JSON.stringify(s));
  console.log(await p.evaluate(()=>JSON.stringify({badges:S.badges,money:S.money,bag:S.bag,party:S.party.map(x=>[x.sp,x.lv])})));
- await p.screenshot({path:'/tmp/claude-0/-home-claude/96f873e2-b183-5b09-81db-580e3cc4ac3b/scratchpad/f_17afterGym.png'});
+ await p.screenshot({path:'/tmp/claude-0/-home-claude-sprogaander/96f873e2-b183-5b09-81db-580e3cc4ac3b/scratchpad/f_17afterGym.png'});
  // gate battle at Østerbro bottom
  await gogo(()=>{gotoMap('osterbro',9,16,'d')});await p.keyboard.down('ArrowDown');await p.waitForTimeout(400);await p.keyboard.up('ArrowDown');
  s=await drive();console.log('gate',JSON.stringify(s));
@@ -36,7 +36,7 @@ const {chromium}=require('playwright');
  await key('z');s=await drive();console.log('nurse hp',await p.evaluate(()=>S.party[0].hp+'/'+maxHp(S.party[0])+' heal='+JSON.stringify(S.heal)));
  // shop
  await gogo(()=>{const o=MAPS.osterbro;const im=buildInterior(o,1);gotoMap(im.id,5,3,'u',{quiet:true})});
- await key('z');await p.waitForTimeout(500);await p.click('.irow .btn >> nth=0');await p.waitForTimeout(300);await p.screenshot({path:'/tmp/claude-0/-home-claude/96f873e2-b183-5b09-81db-580e3cc4ac3b/scratchpad/f_18shop.png'});await key('Escape');
+ await key('z');await p.waitForTimeout(500);await p.click('.irow .btn >> nth=0');await p.waitForTimeout(300);await p.screenshot({path:'/tmp/claude-0/-home-claude-sprogaander/96f873e2-b183-5b09-81db-580e3cc4ac3b/scratchpad/f_18shop.png'});await key('Escape');
  console.log('bag after shop',await p.evaluate(()=>JSON.stringify(S.bag)+' '+S.money));
  // final hall
  await gogo(()=>{S.badges=[1,2,3,4,5,6];S.party=[newSpirit('ræv',40)];gotoMap('borgergade',9,12,'u')});

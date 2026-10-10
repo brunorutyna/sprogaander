@@ -9,13 +9,13 @@ async function runBattle(o){
   BT.disp.me=BT.me.hp;BT.disp.foe=BT.foe.hp;
   sfx('enc');await wait(700);BT.phase='fight';
   for(const f of BT.foes)S.seen[f.sp]=1;
-  if(BT.wild)await say(`En vild ${nameOf(BT.foe)} dukkede op!`,`A wild ${nameOf(BT.foe)} appeared!`);
+  if(BT.wild){await say(`En vild ${nameOf(BT.foe)} dukkede op.`,`A wild ${nameOf(BT.foe)} appeared.`);if(Math.random()<.3)await say(...WILD_QUIPS[Math.floor(Math.random()*WILD_QUIPS.length)])}
   else{await say(`${o.who} vil kæmpe!`,`${o.who} wants to fight!`);await say(`${o.trainer.name} sender ${nameOf(BT.foe)} ud!`,`${o.trainer.name} sends out ${nameOf(BT.foe)}!`)}
   BT.anim.meIn=performance.now();
   await say(`Kom så, ${nameOf(BT.me)}!`,`Go, ${nameOf(BT.me)}!`);
   if(!S.flags.tut){S.flags.tut=1;save();
-    await say('Sådan kæmper man: vælg KÆMP og et angreb. Du angriber ved at svare rigtigt på et spørgsmål om modstanderens emne.','How to fight: choose FIGHT and a move. You attack by answering a question on the opponent\'s topic correctly.',{who:'Lone'});
-    await say('Svarer du forkert, rammer du ikke, og modstanderen slår hårdere. Skriv-angreb er de stærkeste.','If you answer wrong, you miss and the opponent hits harder. Typing moves are the strongest.',{who:'Lone'});
+    await say('Sådan her: Vælg KÆMP og et angreb. Du rammer ved at svare rigtigt på et spørgsmål om modstanderens emne.','Here\'s how: choose FIGHT and a move. You hit by answering a question on the opponent\'s topic correctly.',{who:'Ræven'});
+    await say('Svarer du forkert, rammer du ikke. Og så bliver du slået. Ligesom i virkeligheden. At skrive svaret giver de hårdeste slag.','Answer wrong and you miss. And then you get hit. Just like real life. Typing the answer hits hardest.',{who:'Ræven'});
   }
   let result=null;
   while(!result){
@@ -39,7 +39,7 @@ async function runBattle(o){
     }
   }
   if(result==='lose'){
-    if(o.tutorial){await say('Ræven er træt. Men det gør ikke noget. Det var din første kamp!','The fox is tired. But that doesn\'t matter. It was your first fight!');healAll();await say(...o.trainer.after,{who:o.who})}
+    if(o.tutorial){await say('Jeg er træt. Det var din første kamp. Vi taler ikke om den.','I\'m tired. It was your first fight. We don\'t talk about it.',{who:'Ræven'});healAll();await say(...o.trainer.after,{who:o.who})}
     else{await say('Du har ikke flere ånder, der kan kæmpe!','You have no more spirits that can fight!');BT=null;await whiteout();return 'lose'}
   }
   if(result==='win'||result==='caught')victoryMusic();
@@ -70,8 +70,8 @@ async function doAttack(mv){
   const me=BT.me,foe=BT.foe;
   const it=pickItem(topicsFor(foe,mv.f).topics,mv.f)||pickItem(SP[foe.sp].topics);
   await say(`${nameOf(me)} bruger ${mv.n}!`,`${nameOf(me)} uses ${mv.n}!`,{instant:true,nospeak:true});
-  const r=await challenge(it,{who:(BT.wild?'Vilde ':'')+nameOf(foe),sub:`${TOPICS[it.topic][2]} · ${mv.tag} ${mv.pow}`,sprite:spiritSprite(SP[foe.sp]),theirs:{hp:foe.hp,max:getMax(foe)}});
-  if(!r.ok){await say('Svaret var forkert. Angrebet ramte ikke!','The answer was wrong. The attack missed!');return enemyTurn(true)}
+  const r=await challenge(it,{who:(BT.wild?'Vilde ':'')+nameOf(foe),sub:`${TOPICS[it.topic][2]} · ${mv.tag} ${mv.pow}`,spirit:SP[foe.sp],theirs:{hp:foe.hp,max:getMax(foe)}});
+  if(!r.ok){await say('Forkert svar. Angrebet ramte luft.','Wrong answer. The attack hit thin air.');return enemyTurn(true)}
   const crit=r.typed?Math.random()<.4:mv.f==='order'?Math.random()<.15:false;
   const{d,mult}=dmgCalc(me,foe,mv.pow,crit);
   {const ans=it.t==='order'?it.a.join(''):it.t==='type'?it.a[0]:String(it.a);fxAttack(true,TYPES[SP[me.sp].type].c,ans.length<14?ans:ans.split(' ')[0])}
@@ -91,7 +91,7 @@ async function enemyTurn(punish){
   const d=Math.max(1,Math.round((3+foe.lv*.95)*mult*(.85+Math.random()*.15)*(punish?1.4:1)*(BT.o.leader?1.08:1)));
   fxHitMe(TYPES[SP[foe.sp].type].c);sfx('hit');BT.anim.meHit=performance.now();await wait(380);
   me.hp=Math.max(0,me.hp-d);await tweenHp('me',me.hp);
-  if(punish)await say('Et hårdt slag! Forkerte svar koster.','A hard hit! Wrong answers cost.');
+  if(punish)await say('Et hårdt slag. Forkerte svar koster. Ligesom husleje.','A hard hit. Wrong answers cost. Like rent.');
   else if(mult>1)await say('Det er supereffektivt!','It\'s super effective!');
   if(me.hp<=0){await say(`${nameOf(me)} besvimede!`,`${nameOf(me)} fainted!`);
     if(!firstAlive())return 'lose';
@@ -122,7 +122,7 @@ async function pickSpirit(title,filter,must){
   return menu(items,{title,cls:'party',noCancel:!!must});
 }
 async function useBagInBattle(){
-  const opts=['kugle','superkugle','rugbrod','smorrebrod'].filter(k=>S.bag[k]>0).map(k=>({label:ITEMS[k].name,sub:'×'+S.bag[k],value:k}));
+  const opts=['kugle','superkugle','kaffe','rugbrod','smorrebrod'].filter(k=>S.bag[k]>0).map(k=>({label:ITEMS[k].name,sub:'×'+S.bag[k],value:k}));
   if(!opts.length){await say('Tasken er tom.','The bag is empty.');return 'cancel'}
   const k=await menu(opts,{title:'TASKE',cls:'party'});if(!k)return 'cancel';
   if(k==='kugle'||k==='superkugle'){
@@ -136,21 +136,21 @@ async function useBagInBattle(){
 }
 async function catchFlow(sup){
   const foe=BT.foe;sfx('ball');
-  await say(`Du kaster en ${sup?'superkugle':'sprogkugle'}! Fang ånden: svar på dens spørgsmål.`,`You throw a ${sup?'super ball':'language ball'}! Catch the spirit: answer its question.`);
+  await say(`Du tænder en ${sup?'superlampe':'lavalampe'}. Ånden kigger. Svar på dens spørgsmål, så hopper den ind.`,`You switch on a ${sup?'super lamp':'lava lamp'}. The spirit looks. Answer its question and it jumps in.`);
   const it=pickItem(SP[foe.sp].topics);
-  const r=await challenge(it,{who:'Fang '+nameOf(foe),sub:TOPICS[it.topic][2]+' · fangst',sprite:spiritSprite(SP[foe.sp]),theirs:{hp:foe.hp,max:getMax(foe)}});
-  if(!r.ok){await say('Kuglen ramte ved siden af!','The ball missed!');return 'miss'}
+  const r=await challenge(it,{who:'Fang '+nameOf(foe),sub:TOPICS[it.topic][2]+' · fangst',spirit:SP[foe.sp],theirs:{hp:foe.hp,max:getMax(foe)}});
+  if(!r.ok){await say('Ånden kiggede væk. Lampen gik ud.','The spirit looked away. The lamp went out.');return 'miss'}
   const p=Math.min(.97,Math.max(.3,.3+.65*(1-foe.hp/getMax(foe))+(r.typed?.15:0)+(sup?.25:0)));
   BT.anim.ball=performance.now();
   const ok=Math.random()<p;const shakes=ok?3:Math.floor(Math.random()*3);
   await wait(450);for(let k=0;k<shakes;k++){await wait(420);sfx('shake')}
   await wait(300);
-  if(!ok){BT.anim.ball=null;await say(`Åh nej! ${nameOf(foe)} slap fri!`,`Oh no! ${nameOf(foe)} broke free!`);return 'ok'}
+  if(!ok){BT.anim.ball=null;await say(`Pis. ${nameOf(foe)} slap ud af lampen.`,`Damn. ${nameOf(foe)} escaped from the lamp.`);return 'ok'}
   sfx('catch');BT.anim.caught=true;fxStars(176,70,22);
-  await say(`Fanget! ${nameOf(foe)} er din nu!`,`Gotcha! ${nameOf(foe)} is yours now!`);
+  await say(`Fanget. ${nameOf(foe)} bor nu i din lavalampe. Den betaler ikke husleje.`,`Caught. ${nameOf(foe)} now lives in your lava lamp. It doesn\'t pay rent.`);
   const first=!S.caught[foe.sp];S.caught[foe.sp]=1;
   const mine=newSpirit(foe.sp,foe.lv);mine.hp=Math.max(1,foe.hp);
-  if(S.party.length<6)S.party.push(mine);else{S.box.push(mine);await say(`Holdet er fuldt. ${nameOf(foe)} blev sendt til Åndekassen i Hyggestuen.`,`Your team is full. ${nameOf(foe)} was sent to the Spirit Box at the Hyggestue.`)}
+  if(S.party.length<6)S.party.push(mine);else{S.box.push(mine);await say(`Holdet er fuldt. ${nameOf(foe)} blev sendt til Åndekassen på bodegaen.`,`Your team is full. ${nameOf(foe)} was sent to the Spirit Box at the bodega.`)}
   if(first)await say(`${nameOf(foe)} er skrevet ind i Åndebogen.`,`${nameOf(foe)} has been added to the Åndebog.`);
   await giveXp(BT.me,Math.round(foe.lv*4));
   save();return 'caught';
@@ -160,11 +160,11 @@ async function evolutions(){
     const mst=mastery(d.topic);
     if(mst>=EVO_NEED){
       const pm=GAME.mode;GAME.mode='evo';GAME.evo={from:d,to:SP[d.evo],t0:performance.now()};
-      await say(`Hvad? ${d.name} udvikler sig!`,`What? ${d.name} is evolving!`);
+      await say(`Hvad? ${d.name} er begyndt at træne. Meget.`,`What? ${d.name} has started working out. A lot.`);
       await wait(1600);GAME.evo.done=true;sfx('badge');
       const old=maxHp(s);s.sp=d.evo;s.hp+=maxHp(s)-old;S.seen[s.sp]=1;S.caught[s.sp]=1;
-      await say(`${d.name} blev til ${SP[d.evo].name}!`,`${d.name} evolved into ${SP[d.evo].name}!`);
-      await say(`Du kan emnet «${TOPICS[d.topic][2]}» så godt, at ånden voksede.`,`You know "${TOPICS[d.topic][2]}" so well that the spirit grew.`);
+      await say(`${d.name} blev til ${SP[d.evo].name}. Den sprang ikke ben-dagen over. Den sprang alt andet over.`,`${d.name} became ${SP[d.evo].name}. It didn\'t skip leg day. It skipped everything else.`);
+      await say(`Du kan emnet «${TOPICS[d.topic][2]}» så godt, at ånden fik muskler af det.`,`You know "${TOPICS[d.topic][2]}" so well that the spirit got muscles from it.`);
       GAME.mode=pm;GAME.evo=null;save();
     }else if(S.flags['evotold:'+s.uid]!==s.lv){S.flags['evotold:'+s.uid]=s.lv;
       await say(`${d.name} vil gerne udvikle sig … men først skal du kunne emnet "${TOPICS[d.topic][2]}" bedre. (${Math.round(mst*100)} % af 60 %)`,`${d.name} wants to evolve… but first you need to know "${TOPICS[d.topic][2]}" better. (${Math.round(mst*100)}% of 60%) Practise it in the Åndebog.`)}

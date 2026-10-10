@@ -3,7 +3,7 @@ const SAVE='sprogaander.v1';
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function freshState(){return{v:1,started:false,map:'norrebro',x:4,y:5,dir:'d',inside:null,party:[],box:[],seen:{},caught:{},badges:[],money:300,
-  bag:{kugle:0,superkugle:0,rugbrod:2,smorrebrod:0,ordbog:3},flags:{},beaten:{},heal:{map:'norrebro',x:4,y:5},stats:{},xp:0,
+  bag:{kugle:0,superkugle:0,kaffe:3,rugbrod:2,smorrebrod:0,ordbog:3},flags:{},beaten:{},heal:{map:'norrebro',x:4,y:5},stats:{},xp:0,
   day:{date:'',n:0,right:0,wrong:0},streak:0,lastGoal:'',sound:true,slow:false,en:false,time:0,uid:1,name:'',vol:{music:.55,sfx:.8,amb:.55},daynight:true}}
 let S=Object.assign(freshState(),load(SAVE,{}));
 function save(){S.savedAt=Date.now();store(SAVE,S)}
@@ -50,7 +50,7 @@ const MOVES=[
  {f:'listen',n:'Lytteøre',tag:'LYT',pow:12,lv:1,en:'listen'},
  {f:'order',n:'Sætningsbyg',tag:'BYG',pow:14,lv:6,en:'build'},
  {f:'type',n:'Skriveslag',tag:'SKRIV',pow:18,lv:10,en:'type'}];
-const ENEMY_MOVE={ORD:'Ordrod',VERB:'Bøjningsbid',NAVN:'Kønsforvirring',BØJ:'Endelsesfælde',SNAK:'Engelsk-skift',TID:'Halv-syv-snyd'};
+const ENEMY_MOVE={ORD:'Ordstillingskaos',VERB:'Uregelmæssig bøjning',NAVN:'En-eller-et-angst',BØJ:'Endelseshovedpine',SNAK:'Skifter til engelsk',TID:'Halv-syv-forvirring'};
 
 /* ================= AUDIO ================= */
 let daVoice=null;

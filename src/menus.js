@@ -1,8 +1,9 @@
 /* ================= ITEMS, MENUS, PANELS ================= */
 const itemName=(k,n)=>n>1?ITEMS[k].pl:ITEMS[k].name.toLowerCase();
 const ITEMS={
- kugle:{name:'Sprogkugle',pl:'sprogkugler',en:'language ball',price:60,da:'Fanger en vild ånd, hvis du svarer rigtigt.',enD:'Catches a wild spirit if you answer correctly.'},
- superkugle:{name:'Superkugle',pl:'superkugler',en:'super ball',price:150,need:3,da:'Som en sprogkugle, men meget bedre.',enD:'Like a language ball, but much better.'},
+ kugle:{name:'Lavalampe',pl:'lavalamper',en:'lava lamp',price:60,da:'Fanger en vild ånd, hvis du svarer rigtigt. Ånder elsker lavalamper.',enD:'Catches a wild spirit if you answer correctly. Spirits love lava lamps.'},
+ superkugle:{name:'Superlampe',pl:'superlamper',en:'super lamp',price:150,need:3,da:'En lavalampe fra 1971. Meget overbevisende.',enD:'A lava lamp from 1971. Very convincing.'},
+ kaffe:{name:'Kaffe',pl:'kopper kaffe',en:'coffee',price:25,heal:20,da:'Giver 20 HP. Smager af filter.',enD:'Restores 20 HP. Tastes of filter.'},
  rugbrod:{name:'Rugbrødsmad',pl:'rugbrødsmadder',en:'rye bread sandwich',price:40,heal:30,da:'Giver 30 HP.',enD:'Restores 30 HP.'},
  smorrebrod:{name:'Smørrebrød',pl:'stykker smørrebrød',en:'open sandwich',price:120,full:true,need:2,da:'Giver alle HP tilbage.',enD:'Restores all HP.'},
  ordbog:{name:'Ordbog',pl:'ordbøger',en:'dictionary',price:50,da:'Et hint i et spørgsmål.',enD:'One hint during a question.'}
@@ -24,13 +25,13 @@ function dexPanel(){return panel('Åndebogen',(b)=>{
   const grid=h('div',{class:'dex'});b.append(grid);
   for(const d of DEX){const s=!!S.seen[d.id],c=!!S.caught[d.id];
     const btn=h('button',{class:'dx'+(c?' got':s?' seen':''),type:'button'},h('small',{class:'num'},'#'+String(d.no).padStart(3,'0')),
-      s?spriteImg(spiritSprite(d),48):h('span',{class:'q'},'?'),h('b',null,s?d.name:'???'));
+      s?spiritEl(d,56):h('span',{class:'q'},'?'),h('b',null,s?d.name:'???'));
     btn.onclick=()=>dexEntry(d);grid.append(btn)}
 })}
 function dexEntry(d){return panel(S.seen[d.id]?d.name:'???',(b,close)=>{
   const seen=!!S.seen[d.id];const topic=d.fox?null:d.topic;
   const top=h('div',{class:'entry'});b.append(top);
-  top.append(seen?spriteImg(spiritSprite(d),112,'px big'):h('div',{class:'big q'},'?'));
+  top.append(seen?spiritEl(d,120,'img big'):h('div',{class:'big q'},'?'));
   const info=h('div',{class:'einfo'});top.append(info);
   info.append(h('div',null,h('small',{class:'num'},'#'+String(d.no).padStart(3,'0')),' ',typeChip(d.type),S.caught[d.id]?h('span',{class:'got'},' fanget'):null));
   if(d.fox){info.append(h('p',null,'Ordstillingens ånd. Den ved altid, at verbet står på plads nummer to.'),h('p',{class:'en'},'The spirit of word order. It always knows the verb goes in position two.'));
@@ -55,7 +56,7 @@ async function evolutionsWorld(){await evolutions()}
 function partyPanel(){return panel('Dine ånder',(b,close)=>{
   const draw=()=>{b.innerHTML='';
     S.party.forEach((s,k)=>{const d=SP[s.sp];const row=h('div',{class:'prow'});
-      row.append(spriteImg(spiritSprite(d),56),h('div',{class:'pinfo'},
+      row.append(spiritEl(d,60),h('div',{class:'pinfo'},
         h('div',null,h('b',null,d.name),' ',h('small',{class:'num'},'Nv.'+s.lv),' ',typeChip(d.type)),
         h('div',{class:'hpl'},h('span',null,'HP'),bar(s.hp/maxHp(s),s.hp/maxHp(s)<.25?'red':s.hp/maxHp(s)<.5?'yel':''),h('small',{class:'num'},` ${s.hp}/${maxHp(s)}`)),
         h('div',{class:'hpl xp'},h('span',null,'XP'),bar(s.xp/xpNeed(s.lv),'xp')),
@@ -75,7 +76,7 @@ function bagPanel(){return panel('Tasken',(b)=>{
 /* ---- trainer card ---- */
 function cardPanel(){return panel(S.name||'Spiller',(b,close)=>{
   const caught=DEX.filter(d=>S.caught[d.id]).length;const n=dayN();
-  b.append(h('div',{class:'card'},spriteImg(SPR.hero.d[0],64),h('div',null,h('b',null,S.name||'Spiller'),h('p',{class:'mini'},'Ny i København. Lærer dansk på Studieskolen.'),
+  b.append(h('div',{class:'card'},personEl('hero',64),h('div',null,h('b',null,S.name||'Spiller'),h('p',{class:'mini'},'Ny i København. Fremlejer på Nørrebro. Ser ånder.'),
     h('p',{class:'num'},`Penge ${S.money} kr · Åndebog ${caught}/${DEX.length}`))));
   b.append(h('h4',null,'Mærker'));
   const badges=h('div',{class:'badges'});for(let i=1;i<=6;i++){const G=GYMS[i];const got=S.badges.includes(i);
@@ -129,11 +130,11 @@ function shop(){return panel('Kiosken',(b,close)=>{
 function boxPC(){return panel('Åndekassen',(b)=>{
   const draw=()=>{b.innerHTML='';b.append(h('p',{class:'lede'},'Flyt ånder mellem holdet (højst seks) og kassen.'));
     b.append(h('h4',null,`Holdet (${S.party.length}/6)`));
-    S.party.forEach((s,k)=>b.append(h('div',{class:'irow'},spriteImg(spiritSprite(SP[s.sp]),36),h('b',null,nameOf(s)),h('span',{class:'num'},'Nv.'+s.lv),
+    S.party.forEach((s,k)=>b.append(h('div',{class:'irow'},spiritEl(SP[s.sp],40),h('b',null,nameOf(s)),h('span',{class:'num'},'Nv.'+s.lv),
       S.party.length>1&&!SP[s.sp].fox?h('button',{class:'btn',type:'button',on:{click:()=>{S.party.splice(k,1);S.box.push(s);save();draw()}}},'Til kassen'):h('span'))));
     b.append(h('h4',null,`Kassen (${S.box.length})`));
     if(!S.box.length)b.append(h('p',{class:'mini'},'Kassen er tom.'));
-    S.box.forEach((s,k)=>b.append(h('div',{class:'irow'},spriteImg(spiritSprite(SP[s.sp]),36),h('b',null,nameOf(s)),h('span',{class:'num'},'Nv.'+s.lv),
+    S.box.forEach((s,k)=>b.append(h('div',{class:'irow'},spiritEl(SP[s.sp],40),h('b',null,nameOf(s)),h('span',{class:'num'},'Nv.'+s.lv),
       S.party.length<6?h('button',{class:'btn',type:'button',on:{click:()=>{S.box.splice(k,1);s.hp=maxHp(s);S.party.push(s);save();draw()}}},'Til holdet'):h('span'))));};
   draw();
 })}

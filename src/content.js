@@ -1,4 +1,4 @@
-/* ================= CONTENT · bank from Kælderen (Studieskolen Modul 1–2) ================= */
+/* ================= CONTENT · bank from Kælderen (Danish course Modul 1–2) ================= */
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
 const BANK=[];let CUR=0;
 function distract(arr,seed,n=3){const out=[];let k=0;while(out.length<Math.min(n,arr.length)&&k<200){const v=arr[(seed*7+k*11+3)%arr.length];if(!out.includes(v))out.push(v);k++}return out}
@@ -312,6 +312,18 @@ L('krop',2,`Tag to piller tre gange om dagen.`,`Hvad siger lægen?`,`2 pills, 3 
 M('krop',1,`Hej, jeg vil gerne … en tid hos lægen.`,`bestille`,[`købe`,`tage`,`lave`],`bestille tid = book an appointment.`);
 M('krop',2,`— Hvordan har du det?`,`Jeg har det bedre, tak.`,[`Jeg er det bedre, tak.`,`Jeg har bedre det, tak.`,`Jeg har det godt bedre, tak.`],`Hvordan har du det? → Jeg har det godt / bedre / skidt.`,{npc:1});
 
+/* slang · Nyhavn (with moderation) */
+M('slang',1,`Du taber din telefon i havnen. Hvad siger du?`,`Pis!`,[`Skål!`,`Tillykke!`,`Velbekomme!`],`"Pis" is the everyday swear for small disasters. Mild and very common. Maybe not in front of your boss.`);
+M('slang',2,`"Det er sgu koldt i dag." Hvad gør "sgu"?`,`It adds emphasis (really, damn)`,[`It makes the sentence negative`,`It means "maybe"`,`It is a kind of weather`],`sgu (from "så Gud") just adds emphasis: Det er sgu koldt = It's damn cold. It sits after the verb, like ikke.`,{ea:1});
+O('slang',2,`It's damn cold today.`,[`Det`,`er`,`sgu`,`koldt`,`i dag.`],`sgu behaves like an adverb: right after the verb.`);
+M('slang',2,`Din ven siger: "Det var en lortedag." Hvordan var dagen?`,`Rigtig dårlig`,[`Rigtig god`,`Meget lang`,`Lidt kedelig`],`lort = crap. Lorte- in front of a noun makes it bad: en lortedag, en lortecykel.`);
+M('slang',2,`"Den film var skidegod!" Hvad synes personen?`,`Filmen var meget god`,[`Filmen var dårlig`,`Filmen var for lang`,`Filmen var kedelig`],`skide- + adjective = very: skidegod = really good, skidekoldt = really cold. Yes, it comes from "shit". Danish is like that.`);
+M('slang',3,`Hvilken sætning er høflig?`,`Undskyld, det forstod jeg ikke.`,[`For fanden, hvad siger du?`,`Hvad fanden mener du?`,`Hold nu kæft.`],`"For fanden" and "hvad fanden" are swearing (fanden = the devil). "Hold kæft" = shut up. Good to understand, risky to use.`);
+M('slang',1,`Hvad betyder "Hold da op!"?`,`Wow!`,[`Stop now!`,`Hold the door!`,`Shut up!`],`Hold da op = wow / oh my. Perfectly polite. Danes mostly say it about prices.`,{ea:1});
+M('slang',2,`Din kollega siger: "Det er bare ærgerligt." Hvordan har han det?`,`Han er skuffet`,[`Han er glad`,`Han er sulten`,`Han er forelsket`],`ærgerligt = too bad / annoying. The standard Danish reaction to every disaster.`);
+T('slang',3,`Høflig reaktion på en pris: "___ da op!" (et ord)`,[`Hold`],`Hold da op! = Wow!`);
+M('slang',2,`"Det gider jeg ikke." Hvad betyder det?`,`I can't be bothered`,[`I don't understand`,`I'm not allowed`,`I don't have time`],`gide = can be bothered. Jeg gider ikke = I can't be bothered. Essential Danish.`,{ea:1});
+
 /* ================= TOPICS ================= */
 const TYPES={ORD:{n:'ORD',full:'Ordstilling',c:'#e07a3a'},VERB:{n:'VERB',full:'Verber',c:'#cf4a5e'},NAVN:{n:'NAVN',full:'Navneord',c:'#4f9a48'},
   BØJ:{n:'BØJ',full:'Bøjning',c:'#8f58c0'},SNAK:{n:'SNAK',full:'Samtale',c:'#c99a1c'},TID:{n:'TID',full:'Tid og tal',c:'#3f78cf'}};
@@ -349,6 +361,7 @@ const TOPICS={
  adj:['BØJ',6,'Adjektiver','Sød, sødt, søde.','Adjective endings and personality words.'],
  pron:['BØJ',6,'Pronomener','Ham, hende, den, det, dem.','Object pronouns.'],
  poss:['BØJ',6,'Sin og hans','Sin peger tilbage på subjektet.','sin/sit/sine vs hans/hendes.'],
+ slang:['SNAK',5,'Bandeord','Pis, lort og sgu. Med måde.','Mild swearing, in moderation.'],
  krop:['NAVN',6,'Hos lægen','Jeg har ondt i hovedet.','Body, illness and the doctor.']
 };
 for(const k in TOPICS){const n=BANK.filter(i=>i.topic===k).length;if(!n)console.warn('empty topic',k)}
@@ -356,15 +369,15 @@ for(const k in TOPICS){const n=BANK.filter(i=>i.topic===k).length;if(!n)console.
 /* ================= SPECIES ================= */
 /* [id, base name, evolved name, topic] — dex numbers are assigned in order (base, evolved) */
 const LINES=[
- ['hej','Hejling','Goddagon'],['adv','Ikkelus','Altidor'],['spm','Hvorling','Spørgeørn'],['køn','Enetling','Bestemtaur'],['tal','Talmus','Halvfemser'],['hjem','Stuemus','Altanbjørn'],
- ['tid','Klokkekat','Halvsyvugle'],['familie','Søskendo','Farmorfant'],['job1','Joblarve','Fuldtidsfugl'],['modal','Kanling','Skalvilmå'],['inv1','Inverrotte','Omvendor'],['mad','Rugbrødling','Smørrebrodon'],['cykel','Cykling','Ladcykelokse'],
- ['butik','Kringling','Bageribasse'],['kvarter','Naboling','Kvarterkrage'],['hygge','Gløggling','Hyggetrold'],
- ['gaet','Gætling','Jobjaguar'],['chunk','Chunkling','Talemådus'],['empati','Lyttelam','Empatiger'],['mark','Kokkeling','Mesterkok'],['kommune','Skemalus','Bureaukrabbe'],
- ['datid','Gikling','Datidsdrage'],['inv2','Daling','Dakaptajn'],['konj','Fordiflue','Fordifalk'],['tidsudtryk','Sidensnog','Tidsdrake'],['historie','Ællingeling','Eventyrsvane'],['vejr','Bygesky','Stormmåge'],
- ['adj','Sødling','Lunefuldo'],['pron','Hamhende','Demdæmon'],['poss','Sinling','Sinhansslange'],['krop','Snøftling','Febertudse']
+ ['hej','Hejling','Goddag-Kolos'],['adv','Ikkelus','Altid-Atlas'],['spm','Hvorling','Hvorfor-Hercules'],['køn','Enetling','Bestemt-Biceps'],['tal','Talmus','Halvfems-Hammer'],['hjem','Stuemus','Fremleje-Fighter'],
+ ['tid','Klokkekat','Klokke-Kraftkarl'],['familie','Søskendo','Farmor-Fitness'],['job1','Joblarve','Fuldtids-Flex'],['modal','Kanling','Skalvil-Muskel'],['inv1','Inverrotte','Inversions-Titan'],['mad','Rugbrødling','Smørrebrød-Bulk'],['cykel','Cykling','Ladcykel-Okse'],
+ ['butik','Kringling','Kringle-Kriger'],['kvarter','Naboling','Kvarter-Kæmpe'],['hygge','Gløggling','Hygge-Hooligan'],
+ ['gaet','Gætling','Job-Jaguar'],['chunk','Chunkling','Talemåde-Tyr'],['empati','Lyttelam','Empati-Gorilla'],['mark','Kokkeling','Kok-Kolossen'],['kommune','Skemalus','Bureau-Bøffen'],
+ ['datid','Gikling','Gik-Gigant'],['inv2','Daling','Da-Dynamo'],['konj','Fordiflue','Fordi-Fighter'],['tidsudtryk','Sidensnog','Tids-Titan'],['historie','Ællingeling','Svane-Svulmer'],['vejr','Bygesky','Orkan-Ole'],['slang','Bandeling','Bande-Bjørn'],
+ ['adj','Sødling','Adjektiv-Atlet'],['pron','Hamhende','Dem-Dæmon'],['poss','Sinling','Sinhans-Slugger'],['krop','Snøftling','Krops-Kongen']
 ];
 const SP={};const DEX=[];
-SP.ræv={id:'ræv',name:'Hyggeræven',topic:'ord',topics:['adv','spm','inv1','inv2'],type:'ORD',stage:0,evo:null,no:0,seed:777,fox:true};
+SP.ræv={id:'ræv',name:'Ræven',topic:'ord',topics:['adv','spm','inv1','inv2'],type:'ORD',stage:0,evo:null,no:0,seed:777,fox:true};
 DEX.push(SP.ræv);
 LINES.forEach(([t,a,b],i)=>{
   const ty=TOPICS[t][0],area=TOPICS[t][1];

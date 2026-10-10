@@ -7,7 +7,8 @@ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor
 const norm=s=>s.toLowerCase().replace(/é/g,'e').replace(/["„“”']/g,'').replace(/[.?!,]+$/,'').replace(/\s+/g,' ').trim();
 function lev(a,b){const m=a.length,n=b.length;if(Math.abs(m-n)>1)return 2;const d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-function spriteImg(c,size,cls){const e=mkc(c.width,c.height);e.getContext('2d').drawImage(c,0,0);e.className=cls||'px';e.style.width=size+'px';e.style.height=size+'px';return e}
+function spriteImg(c,size,cls){const e=mkc(c.width,c.height);e.getContext('2d').drawImage(c,0,0);e.className=cls||'img';e.style.width=size+'px';e.style.height=size+'px';return e}
+const spiritEl=(sp,size,cls)=>spriteImg(spiritImage(sp,size),size,cls);const personEl=(look,size,cls)=>spriteImg(personImage(look,size),size,cls);
 
 /* ================= INPUT ================= */
 const held={u:0,d:0,l:0,r:0};let heldOrder=[];
@@ -41,7 +42,7 @@ function bindPad(){
   pad.addEventListener('pointerdown',e=>{e.preventDefault();pid=e.pointerId;try{pad.setPointerCapture(pid)}catch(_){}set(dirAt(e));audioWake()});
   pad.addEventListener('pointermove',e=>{if(e.pointerId===pid)set(dirAt(e))});
   const up=e=>{if(e.pointerId===pid){pid=null;set(null)}};pad.addEventListener('pointerup',up);pad.addEventListener('pointercancel',up);
-  document.querySelectorAll('[data-k]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');audioWake();press(b.dataset.k)}));
+  document.querySelectorAll('[data-k]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');audioWake();try{navigator.vibrate&&navigator.vibrate(8)}catch(_){}press(b.dataset.k)}));
   document.querySelectorAll('[data-k]').forEach(b=>{const u=()=>b.classList.remove('dn');b.addEventListener('pointerup',u);b.addEventListener('pointerleave',u)});
 }
 
@@ -101,7 +102,7 @@ function closeSheet(){$('#sheet').hidden=true;sheetKeyFn=null}
 function challenge(it,ctx={}){window.__it=it;return new Promise(res=>{
   const p=openSheet('chal');
   const head=h('div',{class:'shead'});
-  if(ctx.sprite)head.append(spriteImg(ctx.sprite,56,'px spr'));
+  if(ctx.spirit)head.append(spiritEl(ctx.spirit,64,'img spr'));else if(ctx.look)head.append(personEl(ctx.look,64,'img spr'));
   head.append(h('div',{class:'st'},h('div',{class:'eyebrow'},ctx.sub||TOPICS[it.topic][2]),h('h3',null,ctx.who||'Spørgsmål'),
     ctx.theirs?hpLine(ctx.theirs):null));
   p.append(head);

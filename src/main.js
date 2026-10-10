@@ -17,18 +17,17 @@ function askName(){return new Promise(res=>{const p=openSheet('panel');
   ok.onclick=done;inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();done()}});
   p.append(h('div',{class:'typebox'},inp,ok));setTimeout(()=>inp.focus(),80);sheetKeyFn=null})}
 async function newGame(){
-  const keep={sound:S.sound,slow:S.slow,en:S.en,vol:S.vol,daynight:S.daynight};S=Object.assign(freshState(),keep);for(const k in MAPS)delete MAPS[k];
-  GAME.mode='intro';GAME.introLook='teacher';GAME.introFox=false;
-  await talk([tl('Hej! Velkommen til sprogåndernes verden!','Hi! Welcome to the world of language spirits!'),
-    tl('Jeg hedder Lone. Jeg er dansklærer på Studieskolen.','My name is Lone. I\'m a Danish teacher at Studieskolen.'),
-    tl('I København bor der sprogånder. Nogle er små og søde. Andre er … uregelmæssige.','Language spirits live in Copenhagen. Some are small and sweet. Others are… irregular.'),
-    tl('Hver ånd er et stykke dansk: et ord, en regel, en vane. Når du forstår en ånd, kan du fange den.','Each spirit is a piece of Danish: a word, a rule, a habit. When you understand a spirit, you can catch it.'),
-    tl('Men først: hvad hedder du?','But first: what\'s your name?')],'Lone');
-  GAME.introLook='hero';S.name=await askName();
-  await talk([tl('{N}! Sikke et godt navn. Du er lige flyttet til Nørrebro, ikke?','{N}! What a good name. You\'ve just moved to Nørrebro, right?'),
-    tl('Din danske historie begynder nu. Vi ses ude på gaden!','Your Danish story begins now. See you out on the street!')],'Lone');
+  const keep={sound:S.sound,slow:S.slow,en:S.en,vol:S.vol,daynight:S.daynight,stats:S.stats,xp:S.xp,day:S.day,streak:S.streak,lastGoal:S.lastGoal};S=Object.assign(freshState(),keep);for(const k in MAPS)delete MAPS[k];CHUNKS.clear();
+  GAME.mode='intro';GAME.introLook=null;GAME.introT=performance.now();
+  await talk([tl('København. Oktober. Det regner.','Copenhagen. October. It\'s raining.'),
+    tl('Du er lige flyttet hertil. Du har et job, der starter om seks uger, en fremlejet seng og ingen anelse om, hvordan man udtaler "rødgrød med fløde".','You have just moved here. You have a job that starts in six weeks, a sublet bed and no idea how to pronounce "rødgrød med fløde".')]);
+  GAME.introLook='sofie';
+  await talk([tl('Hej. Du må være den nye. Hvad hed du nu?','Hi. You must be the new one. What was your name again?')],'Sofie');
+  S.name=await askName();
+  await talk([tl('{N}. Okay. Huslejen er ni tusind om måneden. Plus el. Plus vand. Plus varme. Velkommen.','{N}. Okay. The rent is nine thousand a month. Plus electricity. Plus water. Plus heating. Welcome.'),
+    tl('Og gå en tur. Du ser bleg ud. Alle udlændinge ser blege ud i oktober.','And go for a walk. You look pale. All foreigners look pale in October.')],'Sofie');
   S.started=true;GAME.mode='world';const out=buildOutdoor(OUT[0]);const home=buildInterior(out,0);gotoMap(home.id,2,2,'d',{quiet:true});
-  await say('Tip: gå med piletasterne eller D-pad. A = tal og vælg. START = menu. SELECT = ræven.','Tip: walk with the arrow keys or the D-pad. A = talk and choose. START = menu. SELECT = the fox.');
+  await say('Gå med D-pad eller piletasterne. A = tal og vælg. MENU = menu.','Walk with the D-pad or arrow keys. A = talk and choose. MENU = menu.');
 }
 /* ---- save code export / import (move progress between devices) ---- */
 function exportCode(){try{return btoa(unescape(encodeURIComponent(JSON.stringify(S))))}catch(e){return''}}
@@ -42,7 +41,7 @@ function importPanel(){return panel('Indlæs gemt spil',(b,close)=>{
 
 /* ================= BOOT ================= */
 function boot(){
-  buildSprites();bindPad();fitScreen();
+  bindPad();fitScreen();
   $('#screen').addEventListener('pointerdown',e=>{audioWake();if(GAME.mode==='title'&&!topModal()&&!sheetOpen()){e.preventDefault();press('a')}});
   addEventListener('pointerdown',()=>audioWake(),{once:false,passive:true});
   addEventListener('keydown',()=>audioWake(),{passive:true});
