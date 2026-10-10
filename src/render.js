@@ -135,7 +135,8 @@ function drawWorld(now,dt){
   // sprites
   const spr=[];
   for(const n of m.npcs)if(npcVisible(n))spr.push({y:n.y+n.oy,draw:()=>drawPerson(ctx,n.look,n.d,(n.x+n.ox)*16,(n.y+n.oy)*16,n.walkP||0,!!n.walk),tx:n.x,ty:n.y,X:(n.x+n.ox)*16,Y:(n.y+n.oy)*16,n});
-  const foxOff=Math.abs((F.x+F.fx)-(P.x+P.fx))<.5?6:0;if(F.on&&!(F.x===P.x&&F.y===P.y&&!P.moving))spr.push({y:F.y+F.fy,draw:()=>drawFox(ctx,F.dir,(F.x+F.fx)*16+foxOff,(F.y+F.fy)*16,P.walkP,F.moving,now),tx:F.x,ty:F.y,X:(F.x+F.fx)*16,Y:(F.y+F.fy)*16,fox:1});
+  const foxOff=6*Math.max(0,1-Math.abs((F.x+F.fx)-(P.x+P.fx)));// continuous, so the fox never jumps when you turn into it
+  if(F.on&&!(F.x===P.x&&F.y===P.y&&!P.moving))spr.push({y:F.y+F.fy,draw:()=>drawFox(ctx,F.dir,(F.x+F.fx)*16+foxOff,(F.y+F.fy)*16,P.walkP,F.moving,now),tx:F.x,ty:F.y,X:(F.x+F.fx)*16,Y:(F.y+F.fy)*16,fox:1});
   spr.push({y:P.y+P.fy,draw:()=>drawPerson(ctx,'hero',P.dir,(P.x+P.fx)*16,(P.y+P.fy)*16,P.walkP,P.moving),tx:P.x,ty:P.y,X:(P.x+P.fx)*16,Y:(P.y+P.fy)*16});
   spr.sort((a,b)=>a.y-b.y);
   for(const s of spr){s.draw();
