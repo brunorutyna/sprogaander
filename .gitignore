@@ -1,2 +1,4 @@
-node_modules/
-*.png
+audio/l/
+audio/w/
+tools/manifest.json
+__pycache__/

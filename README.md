@@ -1,29 +1,33 @@
-# Sprogånder
+# Mellemrum
 
-A story-driven creature-collecting RPG for learning Danish, set in Copenhagen. For adults, with dry humour.
+A story-driven narrative adventure for learning Danish at Danskuddannelse **Modul 2** level (*På vej til dansk*, Kapitel 1–2). Play it on your phone: <https://brunorutyna.github.io/sprogaander/>
 
-**Play:** https://brunorutyna.github.io/sprogaander/ (made for phones, works with a keyboard too)
+- Tap where to walk; tap people and things to interact.
+- Every Danish word is tappable. You get a Danish explanation first, then grammar, a picture, and English last.
+- Each line has ↻ replay, 🐢 slow, *enklere* (simpler Danish) and EN.
+- Every character has their own voice, pre-recorded with an offline Danish neural voice (Piper, `da_DK-nst_talesyntese`), shaped per character.
+- The exercises are woven into the story: building sentences (V2 and inversion), fixing real learner mistakes, past tense forms, time prepositions (i / for … siden / om), listening, typing, and free answers (with optional speech input).
+- The notesbog collects the words and chunks you met, the exercises you got wrong, and the sentences you wrote yourself.
 
-Every *sprogånd* (language spirit) is a piece of Danish: inversion, sin/hans, datid, numbers, the kommune, mild swearing … To hit a spirit, or to catch it in a lava lamp, you answer a question about its topic:
+## Structure
 
-| Move | Question | Power |
-|---|---|---|
-| Hurtigsvar | choose the answer | 10 |
-| Lytteøre | listen, then choose | 12 |
-| Sætningsbyg | put the words in order | 14 |
-| Skriveslag | type the answer | 18 (can crit) |
+```
+index.html, style.css
+src/lex.js      lexicon: forms | kind | Danish explanation | English | grammar | picture  (+ chunks)
+src/story.js    characters (with voice profiles), scenes, scripts (lines + challenges)
+src/art.js      layered side-view scene painters + character drawing
+src/engine.js   state, scene loading, parallax camera, tap-to-walk, script runner
+src/ui.js       dialogue panel, gloss card, challenges, notebook, settings
+src/music.js    WebAudio psych/prog score + ambience
+audio/          l.ogg + w.ogg (packed voice clips) and index.json
+tools/          words.js (coverage), lines.js (voice manifest), voices.py (Piper), pack.py, bundle.py
+```
 
-Wrong answers miss, and the opponent hits back harder. Spirits only evolve (and they evolve *a lot*) when you have mastered their topic.
+## Regenerating voices after editing the story
 
-## Features
-- About 320 questions at A2/Modul 2 level, plus everyday Copenhagen Danish.
-- Spaced repetition: questions you get wrong come back; the fox offers to drill them.
-- All dialogue in Danish, with an **EN** button for the translation and read-aloud where the device has a Danish voice.
-- Day/night that follows your clock, weather, original psychedelic/prog soundtrack and city ambience.
-- Progress saves in the browser. *Indstillinger → Kopiér gemt spil* moves it to another device.
-
-## Controls
-Phone: D-pad, A, B, MENU, RÆV (talk to the fox). Keyboard: arrows/WASD, Z/Space = A, X/Esc = B, Enter = MENU, Shift = RÆV.
-
-## Development
-Plain JavaScript in `src/`, loaded by `index.html`, no build step. All art and music is generated in code; the only external assets are Google Fonts.
+```
+node tools/lines.js                         # writes tools/manifest.json
+python3 tools/voices.py <path/to/da-nst_talesyntese-medium.onnx>
+python3 tools/pack.py                       # rebuilds audio/l.ogg, audio/w.ogg, audio/index.json
+node tools/words.js                         # every word form should have a lexicon entry
+```

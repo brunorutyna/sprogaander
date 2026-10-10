@@ -2,46 +2,33 @@
 <html lang="da">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#0d0b12">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="Sprogånder: et sprogeventyr i København. Lær dansk ved at fange psykedeliske sprogånder.">
-<title>Sprogånder</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d0b12'/%3E%3Cpath d='M7 10l4-6 3 5h4l3-5 4 6v9l-9 8-9-8z' fill='%23d9732f'/%3E%3Cpath d='M12 19h8l-4 5z' fill='%23f4eee2'/%3E%3Ccircle cx='12.5' cy='14' r='1.5' fill='%2313202a'/%3E%3Ccircle cx='19.5' cy='14' r='1.5' fill='%2313202a'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mellemrum</title>
+<meta name="theme-color" content="#0f0c17">
+<meta name="description" content="Mellemrum: et sprogeventyr på dansk.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f0c17'/%3E%3Ccircle cx='20' cy='12' r='6' fill='%23f6dceb'/%3E%3Crect x='6' y='22' width='20' height='2' rx='1' fill='%23f2b45c'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Righteous&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Unbounded:wght@600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="app">
-  <div id="screen"><canvas id="cv" aria-label="Spilskærm"></canvas><div id="dlg" hidden></div><div id="place" hidden></div><p class="hint-k">Piletaster · Z = A · X = B · Enter = MENU · Shift = RÆV</p></div>
-  <div id="pad">
-    <div id="dpad" role="group" aria-label="Retningsknapper"><i class="hub"></i><i class="ar u"></i><i class="ar d"></i><i class="ar l"></i><i class="ar r"></i></div>
-    <div class="mid">
-      <button class="pill" data-k="start" type="button" aria-label="Menu">MENU</button>
-      <button class="pill" data-k="select" type="button" aria-label="Tal med ræven">RÆV</button>
-    </div>
-    <div class="ab"><button data-k="a" type="button" aria-label="A">A</button><button data-k="b" type="button" aria-label="B">B</button></div>
-  </div>
+  <div id="stage"><canvas id="cv" aria-label="Spilscene"></canvas><div id="place" hidden></div></div>
+  <section id="panel" aria-live="polite"><div id="pbody"></div></section>
+  <div id="gloss" hidden role="dialog" aria-label="Ordforklaring"></div>
+  <div id="sheet" hidden role="dialog" aria-modal="true"></div>
+  <div id="title" hidden></div>
+  <div id="endcard" hidden></div>
+  <div id="fade" hidden></div>
 </div>
-<div id="sheet" hidden><div id="sheetIn" role="dialog" aria-modal="true"></div></div>
-<div id="toast" hidden></div>
-<script src="src/content.js"></script>
-<script src="src/gfx-base.js"></script>
-<script src="src/map-rows.js"></script>
-<script src="src/gfx-world.js"></script>
-<script src="src/gfx-people.js"></script>
-<script src="src/gfx-creatures.js"></script>
-<script src="src/maps.js"></script>
-<script src="src/core.js"></script>
-<script src="src/audio.js"></script>
+<script src="src/lex.js"></script>
+<script src="src/hash.js"></script>
+<script src="src/story.js"></script>
+<script src="src/art.js"></script>
+<script src="src/music.js"></script>
+<script src="src/engine.js"></script>
 <script src="src/ui.js"></script>
-<script src="src/world.js"></script>
-<script src="src/battle.js"></script>
-<script src="src/menus.js"></script>
-<script src="src/render.js"></script>
 <script src="src/main.js"></script>
 </body>
 </html>

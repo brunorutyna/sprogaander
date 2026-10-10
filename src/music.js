@@ -1,6 +1,6 @@
 /* ================= AUDIO: psychedelic/prog sequencer (organ, fuzz, flute, sitar, bells), effects, ambience ================= */
 const AU={ctx:null,cur:null,curName:null,nextT:0,step:0,amb:null,ambKey:'',evT:0,override:null,overrideUntil:0};
-function vol(k){const v=(S.vol||{})[k];return v==null?{music:.55,sfx:.8,amb:.55}[k]:v}
+function vol(k){const v=(S.vol||{})[k];return v==null?{music:.5,sfx:.7,amb:.5,voice:1}[k]:v}
 function auInit(){if(AU.ctx)return AU.ctx;try{const C=new (window.AudioContext||window.webkitAudioContext)();AU.ctx=C;
   AU.master=C.createGain();AU.master.connect(C.destination);
   const comp=C.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.knee.value=12;comp.connect(AU.master);
@@ -48,60 +48,39 @@ function drum(t,k,v,out){const C=AU.ctx;out=out||AU.music;
   s.connect(f);f.connect(g);g.connect(out);s.start(t,Math.random()*1.5);s.stop(t+L+.02)}
 /* ---- songs: one token per eighth note; '.' holds, '-' rests; channels may loop at different lengths (polymeter) ---- */
 const SONGS={
- title:{bpm:104,ch:[
-  ['organ',.5,'E4 . . . . . | E4 . . . . . | G4 . . . . . | F#4 . . E4 . .',{r:.4}],
-  ['organ',.45,'B3 . . . . . | C#4 . . . . . | B3 . . . . . | A3 . . G3 . .',{r:.4}],
-  ['organ',.4,'G3 . . . . . | A3 . . . . . | E3 . . . . . | D3 . . C3 . .',{r:.4}],
-  ['sub',.8,'E2 . . B2 . . | A2 . . E2 . . | E2 . . B2 . . | D2 . . C2 . .'],
-  ['flute',.6,'B4 . . D5 E5 . | F#5 . . E5 . . | G5 . F#5 E5 D5 . | E5 . . . . . | B4 . . D5 E5 . | A5 . . G5 F#5 . | E5 . D5 B4 . . | A4 . . B4 . .',{d:.5,r:.4}],
-  ['sitar',.35,'E4 B4 E5 B4 G4 B4',{d:.3}],
-  ['dr',.35,'k - h t - h']]},
- town:{bpm:92,ch:[
-  ['organ',.42,'- A3 - A3 - A3 - A3 | - G3 - G3 - G3 - G3 | - A3 - A3 - A3 - A3 | - B3 - B3 - C4 - C4',{r:.25}],
-  ['organ',.38,'- F#4 - F#4 - F#4 - F#4 | - E4 - E4 - E4 - E4 | - F#4 - F#4 - F#4 - F#4 | - D4 - D4 - E4 - E4',{r:.25}],
-  ['sub',.85,'D2 . D3 . A2 . C3 . | C2 . C3 . G2 . B2 . | D2 . D3 . A2 . F#2 . | G2 . G2 . C3 . B2 .'],
-  ['flute',.55,'A4 . D5 . E5 F#5 . E5 | D5 . C5 . A4 . . . | A4 . D5 . E5 F#5 A5 . | G5 . E5 . C5 . D5 . | F#5 . . E5 D5 . C5 . | D5 . . . A4 . . . | E5 . F#5 G5 A5 . G5 F#5 | E5 . C5 . D5 . . .',{d:.45,r:.3}],
-  ['dr',.4,'k - h - s - h k | - k h - s - h -']]},
- route:{bpm:132,ch:[
-  ['saw',.5,'A3 A3 C4 A3 D4 A3 E4 | A3 A3 C4 A3 G3 A3 F#3',{r:.15}],
-  ['sub',.85,'A1 . A2 . A1 G1 A1 | A1 . A2 . A1 E2 G2'],
-  ['organ',.5,'E5 . . D5 . C5 . | D5 . . . . . . | E5 . G5 . A5 . . | G5 . F#5 . E5 . . | C5 . . B4 . A4 . | B4 . . . . . . | A4 . . . . . . | - - - - - - -',{d:.35,r:.3}],
-  ['dr',.5,'k - h s - k h']]},
- hygge:{bpm:80,ch:[
-  ['organ',.3,'E4 . . . . . . . | D4 . . . . . . . | E4 . . . . . . . | D4 . . . C4 . . .',{r:.5}],
-  ['organ',.28,'C4 . . . . . . . | B3 . . . . . . . | A3 . . . . . . . | B3 . . . A3 . . .',{r:.5}],
-  ['organ',.26,'A3 . . . . . . . | G3 . . . . . . . | F3 . . . . . . . | G3 . . . F3 . . .',{r:.5}],
-  ['sub',.7,'F2 . . . C3 . . . | F2 . . . D3 . . . | F2 . . . C3 . . . | G2 . . . C3 . . .'],
-  ['bell',.6,'A4 . C5 . E5 . D5 . | B4 . . . G4 . . . | A4 . C5 . G5 . F5 . | E5 . D5 . C5 . . .',{d:.5,r:.5}],
-  ['dr',.25,'h - - h - - h -']]},
- wild:{bpm:150,ch:[
-  ['saw',.55,'E3 . E3 F3 E3 . G3 . F3 E3 | E3 . E3 F3 E3 . A3 . G3 F3'],
-  ['sub',.9,'E2 E2 . E2 . E2 E2 . E2 . | E2 E2 . E2 . E2 E2 . F2 .'],
-  ['organ',.5,'B4 . . C5 B4 . . . A4 . | G4 . . A4 . F4 . E4 . . | B4 . . C5 D5 . E5 . D5 C5 | B4 . . . . . . . - -',{d:.3,r:.25}],
-  ['dr',.55,'k - h s - k k h s h']]},
- trainer:{bpm:158,ch:[
-  ['saw',.55,'B2 B2 D3 B2 E3 B2 F#3 | B2 B2 D3 B2 A2 B2 C#3'],
-  ['sub',.9,'B1 . B1 . B1 F#1 B1 | B1 . B1 . A1 . F#1'],
-  ['organ',.5,'F#4 . . A4 . B4 . | D5 . C#5 . B4 . . | A4 . . F#4 . E4 . | F#4 . . . . . . | B4 . . D5 . E5 . | F#5 . E5 . D5 . . | C#5 . . A4 . B4 . | B4 . . . . - -',{d:.3,r:.25}],
-  ['dr',.55,'k h s h k s h']]},
- boss:{bpm:170,ch:[
-  ['saw',.55,'D3 D3 F3 D3 G3 D3 A3 | D3 D3 C3 D3 Bb2 A2'],
-  ['sub',.95,'D2 . D2 . D2 . D2 | D2 . C2 . Bb1 A1'],
-  ['saw',.4,'A4 . . D5 . E5 F5 | E5 . D5 . C5 . | A4 . . F5 . G5 A5 | C6 . Bb5 . A5 .',{d:.3,r:.2}],
-  ['organ',.4,'D4 . . . . . . | C4 . . . . .',{r:.3}],
-  ['dr',.6,'k h s h k k s | k h s h s s']]},
- victory:{bpm:120,ch:[
-  ['bell',.6,'G4 B4 D5 G5 . F#5 . . | E5 . C#5 . D5 . . . | A4 C#5 E5 A5 . G5 . . | F#5 . D5 . G5 . . .',{d:.4,r:.4}],
-  ['sub',.8,'G2 . . . G2 . . . | A2 . . . A2 . . . | E2 . . . A2 . . . | D2 . . . G2 . . .'],
-  ['organ',.35,'B3 . . . . . . . | C#4 . . . . . . . | A3 . . . . . . . | D4 . . . B3 . . .',{r:.4}],
-  ['dr',.35,'k - h - s - h -']]},
- evo:{bpm:116,ch:[
-  ['bell',.5,'C5 E5 F#5 B5 C6 B5 F#5 E5 | D5 F#5 A5 C#6 D6 C#6 A5 F#5 | E5 G#5 B5 D#6 E6 D#6 B5 G#5 | F#5 A#5 C#6 F6 F#6 . . .',{d:.5,r:.5}],
-  ['pad',.6,'C3 . . . . . . . | D3 . . . . . . . | E3 . . . . . . . | F#3 . . . . . . .',{r:.5}]]},
- hall:{bpm:88,ch:[
-  ['pad',.5,'A2 . . . . . . . | Bb2 . . . . . . . | A2 . . . . . . . | G2 . . . Bb2 . . .',{r:.5}],
-  ['sitar',.4,'A4 - - E5 - - - - | Bb4 - - - F5 - - - | A4 - - C5 - - E5 - | D5 - - - Bb4 - - -',{d:.5,r:.4}],
-  ['dr',.25,'h - - - h - - - | k - - - h - h -']]}
+ title:{bpm:72,ch:[
+  ['pad',.55,'E3 . . . . . . . . . . . | D3 . . . . . . . . . . . | C3 . . . . . . . . . . . | D3 . . . . . . . . . . .',{r:.6}],
+  ['pad',.45,'B3 . . . . . . . . . . . | A3 . . . . . . . . . . . | G3 . . . . . . . . . . . | A3 . . . . . . F#3 . . . .',{r:.6}],
+  ['sub',.6,'E2 . . . . . . . . . . . | D2 . . . . . . . . . . . | C2 . . . . . . . . . . . | D2 . . . . . . . . . . .'],
+  ['sitar',.22,'E4 - - B4 - - E5 - - B4 - - | D4 - - A4 - - D5 - - A4 - -',{d:.5,r:.4}],
+  ['flute',.42,'- - - - - - B4 . . . D5 . | E5 . . . . . . . . . . . | - - - - - - G5 . F#5 . E5 . | D5 . . . . . . . B4 . . .',{d:.5,r:.5}]]},
+ night:{bpm:84,ch:[
+  ['bell',.32,'A3 E4 A4 C5 E4 | A3 E4 A4 B4 E4 | F3 C4 F4 A4 C4 | G3 D4 G4 B4 D4',{d:.4,r:.4}],
+  ['pad',.36,'A2 . . . . | A2 . . . . | F2 . . . . | G2 . . . .',{r:.5}],
+  ['sub',.55,'A1 . . A1 . | A1 . . E2 . | F1 . . F1 . | G1 . . D2 .'],
+  ['flute',.3,'- - - - - | E5 . . D5 C5 | - - - - - | B4 . . . . | - - - - - | C5 . . B4 A4 | - - - - - | G4 . . . .',{d:.5,r:.5}],
+  ['dr',.22,'h - h h - | h - h - h']]},
+ pier:{bpm:60,ch:[
+  ['pad',.5,'D3 . . . . . . . | E3 . . . . . . . | D3 . . . . . . . | C3 . . . . . . .',{r:.7}],
+  ['pad',.42,'A3 . . . . . . . | G#3 . . . . . . . | F#3 . . . . . . . | G3 . . . . . . .',{r:.7}],
+  ['sub',.45,'D2 . . . . . . . | E2 . . . . . . . | D2 . . . . . . . | C2 . . . . . . .'],
+  ['bell',.3,'- - F#5 - - - A5 - | - - - - G#5 - - - | - - E5 - - - F#5 - | - - - - - - - - | A5 - - - - - - -',{d:.6,r:.6}],
+  ['flute',.32,'- - - - - - - - | A4 . . B4 C#5 . . . | D5 . . . . . . . | - - - - - - - - | - - - - - - - - | F#5 . . E5 D5 . . . | E5 . . . . . . . | - - - - - - - -',{d:.6,r:.6}]]},
+ town:{bpm:108,ch:[
+  ['organ',.32,'C4 E4 G4 Bb4 G4 E4 G4 | C4 F4 A4 C5 A4 F4 A4 | Bb3 D4 F4 A4 F4 D4 F4 | C4 E4 G4 Bb4 G4 E4 D4',{d:.25,r:.3}],
+  ['sub',.7,'C2 . . C3 . G2 . | F2 . . F2 . C3 . | Bb1 . . Bb2 . F2 . | C2 . . G2 . E2 .'],
+  ['flute',.42,'G5 . . . E5 . F5 | G5 . . . . . . | A5 . G5 . F5 . D5 | E5 . . . . . . | F5 . . E5 D5 . C5 | D5 . . . Bb4 . . | C5 . . . . . . | - - - - - - -',{d:.4,r:.4}],
+  ['dr',.32,'k - h s - k h | k - h s - h h']]},
+ cafe:{bpm:76,ch:[
+  ['sitar',.24,'F4 A4 C5 E5 C5 A4 | D4 F4 A4 C5 A4 F4 | Bb3 D4 F4 A4 F4 D4 | C4 E4 G4 Bb4 G4 E4',{d:.35,r:.4}],
+  ['pad',.32,'F3 . . . . . | D3 . . . . . | Bb2 . . . . . | C3 . . . . .',{r:.5}],
+  ['sub',.5,'F2 . . . . . | D2 . . . . . | Bb1 . . . . . | C2 . . . . .'],
+  ['bell',.26,'- - - - - - | A5 . . G5 . . | - - - - - - | F5 . . E5 . . | - - - - - - | D5 . . C5 . . | - - - - - - | E5 . . . . .',{d:.5,r:.5}],
+  ['dr',.18,'h - - h - - | k - - h - h']]},
+ end:{bpm:66,ch:[
+  ['pad',.5,'F3 . . . . . . . | G3 . . . . . . . | A3 . . . . . . . | C4 . . . . . . .',{r:.7}],
+  ['bell',.4,'C5 F5 A5 C6 . . . . | D5 G5 B5 D6 . . . . | E5 A5 C6 E6 . . . . | G5 C6 E6 G6 . . . .',{d:.5,r:.6}],
+  ['sub',.5,'F2 . . . . . . . | G2 . . . . . . . | A2 . . . . . . . | C2 . . . . . . .']]}
 };
 function compile(song){if(song._c)return song._c;let len=0;const chans=song.ch.map(([inst,v,pat,sends])=>{const toks=pat.replace(/\|/g,' ').trim().split(/\s+/);len=Math.max(len,toks.length);
   const ev=[];toks.forEach((t,i)=>{if(t==='.'){const last=ev[ev.length-1];if(last&&last.end===i)last.end=i+1;return}if(t==='-')return;ev.push({s:i,end:i+1,t})});return{inst,v,ev,n:toks.length,sends}});
@@ -124,6 +103,10 @@ function schedule(){const C=AU.ctx;if(!C||!AU.cur)return;const cur=AU.cur;const 
 function sfx(kind){const C=AU.ctx;if(!C||S.sound===false)return;const t=C.currentTime+.01;
   const seq=(notes,inst,step,v,sends)=>notes.forEach((n,i)=>{if(n&&n!=='.')voice(t+i*step,inst,typeof n==='number'?n:freq(n),step*1.3,v,AU.sfx,sends)});
   switch(kind){
+   case'lamp':seq(['A4','E5','A5'],'bell',.09,.45,{r:.5});break;
+   case'sign':seq(['C5','G5','C6','E6'],'bell',.08,.45,{d:.3,r:.5});seq(['C3'],'pad',.5,.5,{r:.5});break;
+   case'page':drum(t,'h',.25,AU.sfx);break;
+   case'chime':seq(['E5','C5','G4'],'bell',.35,.4,{r:.5});break;
    case'sel':voice(t,'bell',1568,.05,.18,AU.sfx);break;
    case'bump':voice(t,'sub',70,.08,.5,AU.sfx);break;
    case'ok':seq(['E5','G#5','B5','E6'],'bell',.06,.45,{r:.3});break;
@@ -150,6 +133,10 @@ function setAmb(key){if(!AU.ctx||AU.ambKey===key)return;const C=AU.ctx;AU.ambKey
   const bus=C.createGain();bus.gain.value=0;bus.gain.setTargetAtTime(1,C.currentTime,.6);bus.connect(AU.ambG);const nodes=[];
   const add=n=>{n.g.disconnect();n.g.connect(bus);nodes.push(n)};
   const[place,tod,wx]=key.split('|');
+  if(place==='sea'){add(noiseLoop('lowpass',380,.2,.09));add(noiseLoop('bandpass',900,.03,.05))}
+  if(place==='train'){add(noiseLoop('lowpass',140,.32,0));add(noiseLoop('bandpass',700,.04,.3))}
+  if(place==='town')add(noiseLoop('bandpass',420,.08,.07));
+  if(place==='cafe')add(noiseLoop('lowpass',600,.05,0));
   if(place==='harbour')add(noiseLoop('lowpass',420,.22,.13));
   if(place==='lake')add(noiseLoop('lowpass',320,.12,.1));
   if(place==='city')add(noiseLoop('lowpass',170,.2,0));
@@ -167,24 +154,15 @@ function crackle(){drum(AU.ctx.currentTime,'h',.25,AU.amb.bus)}
 function glass(){const C=AU.ctx,t=C.currentTime;for(const fq of[3100,4650]){const o=C.createOscillator(),g=C.createGain();o.type='sine';o.frequency.value=fq*(1+Math.random()*.05);g.gain.setValueAtTime(.02,t);g.gain.exponentialRampToValueAtTime(.0005,t+.6);o.connect(g);g.connect(AU.amb.bus);o.start(t);o.stop(t+.7)}}
 
 /* ---- driver ---- */
-const HARBOUR=/^(r3|r5|christianshavn|nyhavn)$/,LAKE=/^r2$/,CITY=/^(vesterbro|orestad|r7|borgergade)$/;
 function audioTick(now){if(!AU.ctx||AU.ctx.state!=='running')return;applyVolumes();
-  const tod=typeof timeOfDay==='function'?timeOfDay():{phase:'day'};const night=tod.phase==='night';
-  let song=null;const m=GAME.map;
-  if(GAME.mode==='title')song='title';else if(GAME.mode==='intro')song='hygge';else if(GAME.mode==='evo')song='evo';
-  else if(GAME.mode==='battle'&&BT)song=BT.o.leader?'boss':BT.wild?'wild':'trainer';
-  else if(m){if(m.outdoor)song=(m.town?'town':'route')+(night?'Night':'');else song=m.kind==='gym'||m.kind==='final'?'hall':'hygge'}
-  if(GAME.trip&&now-GAME.trip<7000)song='title';
+  const sc=GAME.mode==='play'&&GAME.scene?SCENES[GAME.scene]:null;
+  let song=GAME.mode==='title'?'title':GAME.mode==='end'?'end':sc?sc.music:null;
   if(AU.override&&now<AU.overrideUntil)song=AU.override;
   playSong(song);
-  let place='none';if(GAME.mode==='world'&&m){if(m.outdoor)place=HARBOUR.test(m.id)?'harbour':LAKE.test(m.id)?'lake':CITY.test(m.id)?'city':'park';else place=m.kind==='hygge'?'fire':m.kind==='home'?'room':'room'}
-  const wx=m&&GAME.mode==='world'&&typeof weatherFor==='function'?weatherFor(m):'none';
-  setAmb(place+'|'+(night?'n':'d')+'|'+wx);
-  if(now>AU.evT&&AU.amb){AU.evT=now+400;const r=Math.random();
-    if(place==='harbour'&&!night&&r<.05)gull();
-    if(place==='city'&&!night&&r<.025)bell();
-    if((place==='park'||place==='lake')&&!night&&wx!=='rain'&&r<.12)bird();
-    if((place==='park'||place==='lake')&&night&&r<.5)cricket();
-    if(place==='fire'&&r<.3)crackle();if(place==='fire'&&r>.96)glass();}
+  setAmb((sc&&sc.amb||'none')+'||');
+  if(now>AU.evT&&AU.amb){AU.evT=now+400;const r=Math.random();const pl=AU.amb.place;
+    if(pl==='town'&&r<.05)bird();if(pl==='town'&&r>.985)bell();
+    if(pl==='cafe'&&r<.25)crackle();if(pl==='cafe'&&r>.97)glass();
+    if(pl==='train'&&r<.5)trainClack();}
 }
-function victoryMusic(ms){AU.override='victory';AU.overrideUntil=performance.now()+(ms||6000)}
+function trainClack(){const t=AU.ctx.currentTime;drum(t,'k',.18,AU.amb.bus);drum(t+.14,'k',.14,AU.amb.bus)}
