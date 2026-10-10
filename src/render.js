@@ -136,7 +136,7 @@ function x_glow(w,a){ctx.fillStyle=`rgba(255,196,110,${.85*a})`;ctx.fillRect(w.x
 function bubble(X,Y,ch,col){fillRR(ctx,X-4.5,Y-5,9,8.5,2.5,'#fbf7ee');ctx.fillStyle='#fbf7ee';ctx.beginPath();ctx.moveTo(X-1.5,Y+3.4);ctx.lineTo(X,Y+5.4);ctx.lineTo(X+1.5,Y+3.4);ctx.fill();
   ctx.fillStyle=col;ctx.font=`700 7px ${FONT_UI}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ch,X,Y-.6)}
 /* the kombucha moment: colour waves and a kaleidoscope, fading out */
-function drawTrip(ms){const t=ms/1000;const a=t<1?t:t>5?Math.max(0,(7-t)/2):1;const W=cv.width,H=cv.height;
+function drawTrip(ms){ms=Math.max(0,ms);const t=ms/1000;const a=t<1?t:t>5?Math.max(0,(7-t)/2):1;const W=cv.width,H=cv.height;
   ctx.save();ctx.globalCompositeOperation='overlay';
   for(let k=0;k<6;k++){const r=((t*.35+k/6)%1)*Math.hypot(W,H)*.7;ctx.strokeStyle=hsl((t*90+k*60)%360,90,60,.55*a);ctx.lineWidth=40*DPR;ctx.beginPath();ctx.arc(W/2,H/2,r,0,Math.PI*2);ctx.stroke()}
   ctx.globalCompositeOperation='color';ctx.fillStyle=hsl((t*70)%360,80,50,.35*a);ctx.fillRect(0,0,W,H);
