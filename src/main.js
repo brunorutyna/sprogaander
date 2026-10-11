@@ -17,4 +17,4 @@ setInterval(()=>{if(GAME.mode==='play'&&S){S.x=P.x;save()}},4000);
 addEventListener('pagehide',()=>{if(S){S.x=P.x;save()}});
 load();applyTextSize();titleScreen();requestAnimationFrame(loop);
 // keyboard: space/enter advances dialogue
-addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&panel.classList.contains('say')&&!e.target.closest('input,textarea')){e.preventDefault();panel.click()}});
+addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&panel.classList.contains('say')&&!e.target.closest('input,textarea,button')){e.preventDefault();const n=document.querySelector('#panel .next');if(n)n.click()}});

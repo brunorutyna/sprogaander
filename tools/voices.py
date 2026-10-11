@@ -11,13 +11,14 @@ SR=voice.config.sample_rate
 FX={'room':'aecho=0.8:0.6:35:0.10','radio':'highpass=f=380,lowpass=f=3300,acompressor=threshold=0.1:ratio=4,aecho=0.8:0.7:70:0.22',
     'old':'vibrato=f=5.2:d=0.05,lowpass=f=6500','raven':'highpass=f=180,aecho=0.8:0.5:22:0.18,treble=g=3',
     'deep':'bass=g=4,lowpass=f=5200','young':'treble=g=2','warm':'bass=g=2,lowpass=f=7600','word':'anull'}
+WORD_LS=1.12
 def synth(text,ls,path):
     with wave.open(path,'wb') as w:
         voice.synthesize_wav(text,w,syn_config=SynthesisConfig(length_scale=ls,noise_scale=0.6,noise_w_scale=0.75))
 def render(item,slow,out):
-    v=item['v'];ls=v['ls']*(1.5 if slow else 1.0)
+    v=item['v'];ls=(WORD_LS if item['who']=='word' else v['ls'])*(1.5 if slow else 1.0)
     with tempfile.NamedTemporaryFile(suffix='.wav',delete=False) as t: tmp=t.name
-    synth(item['text'],ls,tmp)
+    synth(item['text']+('.' if item['who']=='word' else ''),ls,tmp)
     p=v['p'];f=f"asetrate={SR}*{p},aresample={SR},atempo={1/p:.4f},{FX.get(v.get('fx','word'),'anull')},loudnorm=I=-18:TP=-2,apad=pad_dur=0.15"
     subprocess.run(['ffmpeg','-loglevel','error','-y','-i',tmp,'-af',f,'-ac','1','-c:a','libopus','-b:a','28k',out],check=True)
     os.unlink(tmp)

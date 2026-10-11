@@ -7,6 +7,6 @@ module.exports=async(T)=>{const{p,advance,tapActor,walkTo,st,SHOT}=T;await ch1(T
  await tapActor('s_cafe_door');await p.waitForTimeout(1500);r=await advance(10);console.log('cafe',JSON.stringify(await st()));await p.screenshot({path:SHOT+'/m9_cafe.png'});
  await tapActor('sif');
  // capture a build challenge on screen
- for(let i=0;i<60;i++){const cls=await p.evaluate(()=>document.getElementById('panel').className);if(cls==='chal'){await p.screenshot({path:SHOT+'/m10_build.png'});break}await p.evaluate(()=>document.getElementById('panel').click());await p.waitForTimeout(320)}
+ for(let i=0;i<60;i++){const cls=await p.evaluate(()=>document.getElementById('panel').className);if(cls==='chal'){await p.screenshot({path:SHOT+'/m10_build.png'});break}await p.evaluate(()=>(document.querySelector('#panel .next')||document.getElementById('panel')).click());await p.waitForTimeout(320)}
  r=await advance(80);await p.waitForTimeout(800);await p.screenshot({path:SHOT+'/m11_end.png'});console.log('end',JSON.stringify(await st()),await p.evaluate(()=>GAME.mode));
 };

@@ -10,13 +10,13 @@ const SHOT=process.env.SHOT||'/tmp';
  // solve helper: answer whatever is on the panel
  const solve=async()=>p.evaluate(()=>{const cls=document.getElementById('panel').className;return cls});
  const advance=async(n)=>{for(let i=0;i<n;i++){const cls=await p.evaluate(()=>document.getElementById('panel').className);
-   if(cls.startsWith('say')){await p.evaluate(()=>document.getElementById('panel').click());await p.waitForTimeout(320);continue}
+   if(cls.startsWith('say')){await p.evaluate(()=>(document.querySelector('#panel .next')||document.getElementById('panel')).click());await p.waitForTimeout(320);continue}
    if(cls==='chal'){await answer();continue}
    return cls}};
  const answer=async()=>{const info=await p.evaluate(()=>{const id=window.__cur;return id});
    // use the exposed current challenge
    const c=await p.evaluate(()=>window.__chal);
-   if(!c){await p.waitForTimeout(200);return}
+   if(!c){await p.waitForTimeout(200);return}console.log('  answering',c.kind,c.c.id);
    if(c.kind==='pick'||(c.kind==='fix'&&c.c.opts)||c.kind==='listen'){const want=c.kind==='listen'?c.c.opts[c.c.a]:c.c.opts[c.c.a].replace('{N}','Bruno');await p.waitForTimeout(400);await p.click(`.opt:text-is("${want}")`)}
    else if(c.kind==='build'||c.kind==='fix'){const toks=c.c.words.split(' ').filter(t=>!/^[.,!?]$/.test(t));for(let i=0;i<toks.length;i++){const t=i===0?(await p.evaluate(w=>{const e=lookup(w);return e&&e.k==='name'?w:w.toLowerCase()},toks[0])):toks[i];await p.click(`.pool .chip:text-is("${t}")`)}await p.click('text=Tjek')}
    else if(c.kind==='gaps'){const ans=[...c.c.text.matchAll(/\[([^|\]]+)/g)].map(m=>m[1]);for(let i=0;i<ans.length;i++){await p.locator('.gap').nth(i).locator(`.chip:text-is("${ans[i]}")`).click()}await p.click('text=Tjek')}

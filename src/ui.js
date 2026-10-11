@@ -6,22 +6,22 @@ function h(tag,attrs,...kids){const e=document.createElement(tag);if(attrs)for(c
 const nameOf=t=>t.replace(/\{N\}/g,S.name||'du');
 
 /* ---------------------------------------------------------------- voice */
-const VO={a:null,id:null};
-/* audio clips live in two packed bundles (audio/l.bin, audio/w.bin) + index.json */
-const PACK={idx:null,bin:{},urls:{},ready:null};
+const VO={src:null,raf:0,token:0};
+/* audio clips live in two packed bundles (audio/l.ogg, audio/w.ogg) + index.json; played through Web Audio */
+const PACK={idx:null,bin:{},dec:{},ready:null,wready:null};
 PACK.ready=(async()=>{try{PACK.idx=await (await fetch('audio/index.json')).json();PACK.bin.l=await (await fetch('audio/l.ogg')).arrayBuffer();
-  fetch('audio/w.ogg').then(r=>r.arrayBuffer()).then(b=>PACK.bin.w=b).catch(()=>{})}catch(e){console.warn('audio pack',e)}})();
-function clipURL(key){if(PACK.urls[key])return PACK.urls[key];const e=PACK.idx&&PACK.idx[key];if(!e||!PACK.bin[e[0]])return null;
-  return PACK.urls[key]=URL.createObjectURL(new Blob([PACK.bin[e[0]].slice(e[1],e[1]+e[2])],{type:'audio/ogg'}))}
-function audioPath(who,text,slow){return clipURL('l/'+lineId(who,text)+(slow?'s':''))||'audio/l/missing.ogg'}
-function playLine(who,text,slow,onTime){stopVoice();if(who==='du'||!text)return Promise.resolve();
-  return new Promise(res=>{const a=new Audio(audioPath(who,text,slow));a.volume=Math.min(1,(S.vol.voice??1));VO.a=a;let done=false;const end=()=>{if(done)return;done=true;res()};
-    a.addEventListener('ended',end);a.addEventListener('error',()=>{fakeTime(text,onTime).then(end)});
-    if(onTime)a.addEventListener('timeupdate',()=>{if(a.duration)onTime(a.currentTime/(a.duration-.15))});
-    a.play().catch(()=>{fakeTime(text,onTime).then(end)})})}
-function fakeTime(text,onTime){const dur=Math.max(900,text.length*62);const t0=performance.now();return new Promise(r=>{const tick=()=>{const k=(performance.now()-t0)/dur;if(onTime)onTime(k);if(k>=1)return r();VO.raf=requestAnimationFrame(tick)};tick()})}
-function stopVoice(){if(VO.a){try{VO.a.pause()}catch(e){}VO.a=null}if(VO.raf)cancelAnimationFrame(VO.raf)}
-function playWord(w){const u=clipURL('w/'+wordId(w));if(!u)return;const a=new Audio(u);a.volume=Math.min(1,S.vol.voice??1);a.play().catch(()=>{})}
+  PACK.wready=fetch('audio/w.ogg').then(r=>r.arrayBuffer()).then(b=>PACK.bin.w=b).catch(()=>{})}catch(e){console.warn('audio pack',e)}})();
+async function clipBuffer(key){if(PACK.dec[key])return PACK.dec[key];await Promise.race([PACK.ready,sleep(15000)]);if(key[0]==='w'&&PACK.wready)await Promise.race([PACK.wready,sleep(15000)]);
+  const e=PACK.idx&&PACK.idx[key];const C=auInit();if(!e||!PACK.bin[e[0]]||!C)return null;
+  try{const buf=await C.decodeAudioData(PACK.bin[e[0]].slice(e[1],e[1]+e[2]));return PACK.dec[key]=buf}catch(err){console.warn('decode',key,err);return null}}
+function voiceOut(){const C=AU.ctx;if(!VO.gain){VO.gain=C.createGain();VO.gain.connect(C.destination)}VO.gain.gain.value=Math.min(1,S.vol.voice??1);return VO.gain}
+async function playClip(key,onTime){const my=++VO.token;stopVoice(true);audioWake();const buf=await clipBuffer(key);if(my!==VO.token)return'cancel';if(!buf)return null;
+  const C=AU.ctx;const src=C.createBufferSource();src.buffer=buf;src.connect(voiceOut());const t0=C.currentTime+.03;src.start(t0);VO.src=src;
+  return new Promise(res=>{const dur=buf.duration-.15;const tick=()=>{if(my!==VO.token)return res('cancel');const k=(C.currentTime-t0)/dur;if(onTime)onTime(k);if(C.currentTime-t0>=buf.duration)return res('ok');VO.raf=requestAnimationFrame(tick)};tick();src.onended=()=>{if(onTime)onTime(1.01);res('ok')}})}
+async function playLine(who,text,slow,onTime){if(who==='du'||!text)return;const r=await playClip('l/'+lineId(who,text)+(slow?'s':''),onTime);if(r===null)return fakeTime(text,onTime)}
+function fakeTime(text,onTime){const my=VO.token;const dur=Math.max(900,text.length*62);const t0=performance.now();return new Promise(r=>{const tick=()=>{if(my!==VO.token)return r();const k=(performance.now()-t0)/dur;if(onTime)onTime(k);if(k>=1)return r();VO.raf=requestAnimationFrame(tick)};tick()})}
+function stopVoice(keepToken){if(!keepToken)VO.token++;if(VO.src){try{VO.src.stop()}catch(e){}VO.src=null}if(VO.raf)cancelAnimationFrame(VO.raf)}
+function playWord(w){playClip('w/'+wordId(w))}
 
 /* ---------------------------------------------------------------- tokenised, tappable Danish text */
 function tokens(text){const out=[];const re=/([A-Za-zÆØÅæøåÉé]+)|([^A-Za-zÆØÅæøåÉé]+)/g;let m;while((m=re.exec(text)))out.push(m[1]?{w:m[1]}:{p:m[2]});return out}
@@ -42,13 +42,13 @@ function gloss(w,chunk){const e=chunk||lookup(w);stopVoice();const lw=w.toLowerC
   const card=$('#gloss');card.innerHTML='';card.hidden=false;playWord(chunk?chunk.w:lw);
   if(!e){card.append(h('div',{class:'gw'},h('b',null,w)),h('p',{class:'gd'},'Det ord kender jeg ikke endnu.'));return}
   const isWrong=e.k==='fejl';
-  card.append(h('div',{class:'gtop'},e.p?h('span',{class:'gpic'},e.p):null,h('div',null,h('b',{class:'gword'+(isWrong?' bad':'')},chunk?chunk.w:(e.w===lw?w:lw)),
+  card.append(...[h('div',{class:'gtop'},e.p?h('span',{class:'gpic'},e.p):null,h('div',null,h('b',{class:'gword'+(isWrong?' bad':'')},chunk?chunk.w:(e.w===lw?w:lw)),
       chunk||e.w===lw?null:h('small',{class:'glemma'},'grundform: '+e.w),h('small',{class:'gkind'},KIND_DA[e.k]||'')),
     h('button',{class:'ib',type:'button','aria-label':'Hør ordet',on:{click:()=>playWord(chunk?chunk.w:lw)}},'🔊')),
     h('p',{class:'gd'},richText(e.d,{noChunk:true})),
     e.g?h('p',{class:'gg'},e.g):null,
     h('details',{class:'gen'},h('summary',null,'engelsk'),h('span',null,e.en)),
-    h('button',{class:'gclose',type:'button',on:{click:()=>card.hidden=true}},'OK'))}
+    h('button',{class:'gclose',type:'button',on:{click:()=>card.hidden=true}},'OK')].filter(Boolean))}
 document.addEventListener('pointerdown',e=>{const c=$('#gloss');if(!c.hidden&&!c.contains(e.target)&&!e.target.closest('.w,.chunk'))c.hidden=true},true);
 
 /* ---------------------------------------------------------------- dialogue */
@@ -56,22 +56,21 @@ function setPanel(cls){panel.className=cls||''}
 function speakerTag(who){const c=CHARS[who];if(!c||!c.name)return null;return h('div',{class:'who',style:`--c:${c.col}`},c.name)}
 function say(who,text,o={}){text=nameOf(text);markSeen(text);GAME.lastLine={who,text};if(o.show)showWords(who,o.show);
   return new Promise(res=>{let simple=false,slow=false;GAME.talker=who;setPanel('say'+(who==='fort'?' narr':''));pbody.innerHTML='';
-    const txtBox=h('div',{class:'line'});const enBox=h('p',{class:'en',hidden:true},o.e||'');
+    const txtBox=h('div',{class:'line'});const enBox=h('p',{class:'en',hidden:true},o.e||'');const setEn=()=>{enBox.textContent=(simple&&o.s?(o.se||o.e):o.e)||''};
     const render=()=>{txtBox.innerHTML='';const t=simple&&o.s?o.s:text;const rt=richText(t);txtBox.append(rt);return rt};
     let rt=render();
     const hi=k=>{const n=rt._spans.length;if(!n)return;const lens=rt._spans.map(s=>s.textContent.length+1);const tot=lens.reduce((a,b)=>a+b,0);let acc=0;const pos=Math.max(0,Math.min(1,k))*tot;
       rt._spans.forEach((s,i)=>{acc+=lens[i];s.classList.toggle('on',acc-lens[i]<=pos&&pos<acc&&k<1);s.classList.toggle('said',acc<=pos)})};
     const speak=()=>{const t=simple&&o.s?o.s:text;rt.classList.remove('done');return playLine(who,t,slow,hi).then(()=>{rt._spans.forEach(s=>{s.classList.remove('on');s.classList.add('said')})})};
     const tools=h('div',{class:'tools'});
-    if(who!=='du'){tools.append(h('button',{class:'tb',type:'button',title:'Hør igen',on:{click:e=>{e.stopPropagation();slow=false;speak()}}},'↻'),
-      h('button',{class:'tb',type:'button',title:'Langsomt',on:{click:e=>{e.stopPropagation();slow=true;speak()}}},'🐢'));
-      if(o.s)tools.append(h('button',{class:'tb wide',type:'button',on:{click:e=>{e.stopPropagation();simple=!simple;e.currentTarget.classList.toggle('on',simple);rt=render();slow=false;speak()}}},'enklere'));}
+    if(who!=='du'){tools.append(h('button',{class:'tb',type:'button',title:'Hør igen',on:{click:e=>{e.stopPropagation();speak()}}},'↻'),
+      h('button',{class:'tb',type:'button',title:'Langsomt',on:{click:e=>{e.stopPropagation();slow=!slow;e.currentTarget.classList.toggle('on',slow);speak()}}},'🐢'));
+      if(o.s)tools.append(h('button',{class:'tb wide',type:'button',on:{click:e=>{e.stopPropagation();simple=!simple;e.currentTarget.classList.toggle('on',simple);rt=render();setEn();speak()}}},'enklere'));}
     if(o.e)tools.append(h('button',{class:'tb wide',type:'button',on:{click:e=>{e.stopPropagation();enBox.hidden=!enBox.hidden;e.currentTarget.classList.toggle('on',!enBox.hidden)}}},'EN'));
     const next=h('button',{class:'next',type:'button','aria-label':'Videre'},'›');
     pbody.append(speakerTag(who)||'',txtBox,enBox,h('div',{class:'prow'},tools,next));
-    let done=false;const fin=()=>{if(done)return;done=true;stopVoice();GAME.talker=null;panel.removeEventListener('click',onTap);res()};
-    const onTap=e=>{if(e.target.closest('.tb,.w,.chunk,details'))return;sfx('page');fin()};
-    setTimeout(()=>panel.addEventListener('click',onTap),250);
+    let done=false;const fin=()=>{if(done)return;done=true;stopVoice();GAME.talker=null;res()};
+    next.addEventListener('click',e=>{e.stopPropagation();sfx('page');fin()});
     speak();})}
 function idlePanel(){if(GAME.mode!=='play')return;setPanel('idle');pbody.innerHTML='';const sc=SCENES[GAME.scene];
   pbody.append(h('div',{class:'place'},sc.name),S.hint?h('p',{class:'hint'},richText(S.hint)):h('p',{class:'hint dim'},'Tryk et sted for at gå. Tryk på folk og ting.'),
@@ -135,13 +134,19 @@ async function chType(c){let tries=0;return new Promise(res=>{const paint=(bad)=
     const check=async v=>{if(!v.trim())return;const ok=c.a.map(norm).includes(norm(v));if(ok||tries>=2){record(c.id,ok&&tries===0);sfx(ok?'ok':'bad');pbody.innerHTML='';pbody.append(h('div',{class:'q'},ok?'Rigtigt':'Svaret er:'),h('div',{class:'solution'},richText(c.a[0])),feedback(true,c));await cont();return res(ok)}
       tries++;sfx('bad');paint(true)};paint()})}
 async function chListen(c){const[who,text,o]=c.line;const L=nameOf(text);let tries=0;GAME.lastLine={who,text:L};
-  return new Promise(res=>{let slow=false;const paint=(bad)=>{pbody.innerHTML='';const pl=h('div',{class:'listen'},h('button',{class:'big',type:'button',on:{click:()=>{slow=false;playLine(who,L,false)}}},'🔊 Lyt'),h('button',{class:'tb',type:'button',title:'Langsomt',on:{click:()=>playLine(who,L,true)}},'🐢'));
-      const list=h('div',{class:'opts'});pbody.append(speakerTag(who)||'',pl,h('div',{class:'q'},richText(c.q)),list);for(const op of shuffle(c.opts.map((t,i)=>({t,i}))))list.append(h('button',{class:'opt',type:'button',on:{click:()=>pick(op,list)}},op.t));if(bad)pbody.append(h('p',{class:'hint'},'Lyt én gang til.'))};
-    const pick=async(op,list)=>{const ok=op.i===c.a;sfx(ok?'ok':'bad');if(!ok&&tries<1){tries++;paint(true);playLine(who,L,true);return}record(c.id,ok&&tries===0);
-      pbody.innerHTML='';pbody.append(speakerTag(who)||'',h('div',{class:'line'},richText(L)),o&&o.e?h('details',{class:'gen'},h('summary',null,'engelsk'),h('span',null,o.e)):null,h('div',{class:'fb '+(ok?'ok':'bad')},h('b',null,ok?'Rigtigt.':'Svaret var: '+c.opts[c.a])));markSeen(L);await cont();res(ok)};
+  return new Promise(res=>{let slow=false;const paint=(bad)=>{pbody.innerHTML='';
+      const turtle=h('button',{class:'tb'+(slow?' on':''),type:'button',title:'Langsomt',on:{click:()=>{slow=!slow;turtle.classList.toggle('on',slow);playLine(who,L,slow)}}},'🐢');
+      const pl=h('div',{class:'listen'},h('button',{class:'big',type:'button',on:{click:()=>playLine(who,L,slow)}},'🔊 Lyt'),turtle);
+      const list=h('div',{class:'opts'});
+      pbody.append(speakerTag(who)||'',pl,h('p',{class:'hint dim'},'Svarene siger det samme med andre ord.'),h('div',{class:'q'},richText(c.q)),list);
+      for(const op of shuffle(c.opts.map((t,i)=>({t,i}))))list.append(h('button',{class:'opt',type:'button',on:{click:()=>pick(op)}},op.t));
+      if(bad)pbody.append(h('p',{class:'hint'},'Ikke helt. Lyt én gang til – nu langsomt.'))};
+    const pick=async(op)=>{const ok=op.i===c.a;sfx(ok?'ok':'bad');if(!ok&&tries<1){tries++;slow=true;paint(true);playLine(who,L,true);return}record(c.id,ok&&tries===0);
+      pbody.innerHTML='';pbody.append(...[speakerTag(who),h('div',{class:'line'},richText(L)),o&&o.e?h('details',{class:'gen'},h('summary',null,'engelsk'),h('span',null,o.e)):null,
+        h('div',{class:'fb '+(ok?'ok':'bad')},h('b',null,ok?'Rigtigt.':'Svaret var: '+c.opts[c.a]))].filter(Boolean));markSeen(L);await cont();res(ok)};
     paint();setTimeout(()=>playLine(who,L,false),300)})}
 async function chFree(c){return new Promise(res=>{const paint=(msg)=>{pbody.innerHTML='';const inp=h('textarea',{class:'inp',rows:2,autocapitalize:'sentences',spellcheck:'false',placeholder:c.hint||''});
-    pbody.append(h('div',{class:'q'},richText(c.q)),h('div',{class:'irow'},inp,micButton(inp)),msg?h('div',{class:'fb bad'},h('p',null,richText(msg))):null,
+    pbody.append(h('div',{class:'q'},richText(c.q)),h('div',{class:'irow'},inp,micButton(inp)),msg?h('div',{class:'fb bad'},h('p',null,richText(msg))):'',
       h('div',{class:'prow end'},h('button',{class:'btn',type:'button',on:{click:()=>{inp.value=c.model}}},'Eksempel'),h('button',{class:'btn pri',type:'button',on:{click:()=>check(inp.value)}},'Send')));setTimeout(()=>inp.focus(),60)};
     let warned=false;const check=async v=>{v=v.trim();if(v.split(/\s+/).length<3)return paint('Skriv mindst tre ord.');const n=norm(v);
       if(!warned&&c.check==='fritid'&&/^i min fritid jeg\b/.test(n)){warned=true;return paint('Næsten! Når sætningen starter med »I min fritid«, kommer verbet før »jeg«: I min fritid læser jeg …')}
